@@ -1,0 +1,43 @@
+# Traefik dynamic.yml snippet for nx-shop -- not applied anywhere. Merge the router and the
+# service into ~/openpak/deploy/traefik/dynamic.yml (tcp: section); Traefik's file provider
+# reloads it without a restart. TLS stays passthrough: nx-shop terminates with OpenPak-CA
+# certificates exactly as nx-baas did.
+#
+# Not listed on purpose: dragons.hac.lp1.dragons.nintendo.net. It carries the licence
+# answers every title needs (exercise, elicense archives, contents authorization token), so
+# it stays on nx-baas, which forwards only the store rights routes here.
+#
+# A store name missing from this list still works: it falls to the catch-all router, and
+# nx-baas forwards every eShop host to nx-shop (NX_SHOP_URL). Listing a name only takes
+# nx-baas out of its path. On Traefik v3 the d4c family can be one rule:
+#   HostSNIRegexp(`^[a-z0-9-]+\.hac\.lp1\.d4c\.nintendo\.net$`)
+tcp:
+  routers:
+    nx-shop:
+      entryPoints: [console]
+      rule: >-
+        HostSNI(`hac.lp1.savanna.srv.nintendo.net`) ||
+        HostSNI(`bugyo.hac.lp1.eshop.nintendo.net`) ||
+        HostSNI(`beach.hac.lp1.eshop.nintendo.net`) ||
+        HostSNI(`pearljam.hac.lp1.eshop.nintendo.net`) ||
+        HostSNI(`pushmo.hac.lp1.eshop.nintendo.net`) ||
+        HostSNI(`tagaya.hac.lp1.eshop.nintendo.net`) ||
+        HostSNI(`atum.hac.lp1.d4c.nintendo.net`) ||
+        HostSNI(`atumn.hac.lp1.d4c.nintendo.net`) ||
+        HostSNI(`superfly.hac.lp1.d4c.nintendo.net`) ||
+        HostSNI(`veer.hac.lp1.d4c.nintendo.net`) ||
+        HostSNI(`aqua.hac.lp1.d4c.nintendo.net`) ||
+        HostSNI(`sun.hac.lp1.d4c.nintendo.net`) ||
+        HostSNI(`dragonst.hac.lp1.dragons.nintendo.net`) ||
+        HostSNI(`tigers.hac.lp1.dragons.nintendo.net`) ||
+        HostSNI(`idbe-hac.cdn.nintendo.net`) ||
+        HostSNI(`bvc-hac-lp1.cdn.nintendo.net`)
+      priority: 100
+      service: nx-shop
+      tls:
+        passthrough: true
+  services:
+    nx-shop:
+      loadBalancer:
+        servers:
+          - address: "openpak-nx-shop:21000"

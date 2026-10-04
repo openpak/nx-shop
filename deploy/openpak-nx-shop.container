@@ -1,0 +1,39 @@
+# Sample quadlet for nx-shop -- not applied anywhere. Copy to
+# ~/.config/containers/systemd/openpak-nx-shop.container on the box and adjust the two
+# <...> paths to what openpak-nx-baas.container already mounts (see nx-baas
+# docs/service-split.md, "Shop cut-over"). Keys go INSIDE [Container]: appended at the end of
+# the file they land in [Install] and are silently ignored.
+[Unit]
+Description=OpenPak nx-shop (native eShop, split from nx-baas)
+# Ordering only. No Requires= on nx-baas: the shop keeps serving while the core restarts,
+# and a Requires= would leave it dead after a stop/start of nx-baas.
+After=openpak-nx-baas.service
+
+[Container]
+ContainerName=openpak-nx-shop
+Image=ghcr.io/openpak/nx-shop:latest
+AutoUpdate=registry
+Network=openpak
+# The shared env file carries NX_INTERNAL_KEY and BAAS_KID; nothing secret goes here.
+EnvironmentFile=%h/openpak/deploy/.env
+# Environment= wins over the env file, so nx-baas's own values there do not leak in.
+Environment=NX_CORE_URL=http://openpak-nx-baas:20070
+Environment=NX_ADDR=:21000
+Environment=NX_API_ADDR=:20070
+Environment=NX_DATA=/app/data
+Environment=NX_SHOP_DIR=/app/data/shop
+Environment=NX_CA_DIR=/ca
+Environment=BAAS_SIGNING_KEY=/keys/baas_signing_key.pem
+# The store's files stay where nx-baas kept them: this mounts that directory itself, so
+# the cut-over moves no bytes and a rollback is a routing change (one writer at a time).
+Volume=<nx-baas data dir on the host>/shop:/app/data/shop
+# Scratch the shop keeps beside its state (idbe icon cache, pearljam request dumps).
+Volume=openpak-nx-shop-data:/app/data
+Volume=%h/openpak/deploy/ca:/ca:ro
+Volume=<the host dir nx-baas mounts at /keys>:/keys:ro
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target
