@@ -335,12 +335,12 @@ func (s *server) friendsAppCatalog(w http.ResponseWriter, r *http.Request) bool 
 			if title.IconPath != "" {
 				doc["enable_icons"] = []any{"nx"}
 			}
-			log.Printf("[nx-baas] friends app catalog for %s -> %q", appID, name)
+			log.Printf("[nx-shop] friends app catalog for %s -> %q", appID, name)
 		} else {
 			// A title this server does not carry: the console asked about
 			// something a friend is playing that we have never seen. An empty
 			// name map is the honest answer, and it renders as "unknown".
-			log.Printf("[nx-baas] friends app catalog for %s -> not in the catalog", appID)
+			log.Printf("[nx-shop] friends app catalog for %s -> not in the catalog", appID)
 		}
 		writeJSON(w, 200, doc)
 		return true
@@ -350,13 +350,13 @@ func (s *server) friendsAppCatalog(w http.ResponseWriter, r *http.Request) bool 
 				w.Header().Set("Content-Type", "image/jpeg")
 				w.Header().Set("Cache-Control", "public, max-age=3600")
 				w.Write(b)
-				log.Printf("[nx-baas] friends app art %s/%s -> catalog icon", appID, file)
+				log.Printf("[nx-shop] friends app art %s/%s -> catalog icon", appID, file)
 				return true
 			}
 		}
 		// No art for this title: the same neutral mark the shop grid uses,
 		// rather than a 404 the console has to render around.
-		log.Printf("[nx-baas] friends app art %s/%s -> placeholder", appID, file)
+		log.Printf("[nx-shop] friends app art %s/%s -> placeholder", appID, file)
 		w.Header().Set("Content-Type", "image/svg+xml")
 		w.Header().Set("Cache-Control", "public, max-age=3600")
 		fmt.Fprint(w, shopPlaceholderIcon)
