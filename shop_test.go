@@ -355,3 +355,22 @@ func TestShopAvatarIsTheSignedInUsers(t *testing.T) {
 		t.Errorf("avatar ETag = %q, want the core's", rec.Header().Get("ETag"))
 	}
 }
+
+// A second press after the first task went stale replaces it with a fresh id, so pushmo's
+// list (and its ETag) changes and the console starts the download over; a double tap does not.
+func TestDownloadAgainReplacesAStaleTask(t *testing.T) {
+	s := shopServerFor(t)
+	s.shop.Catalog[testTitleID] = &ShopTitle{TitleID: testTitleID}
+	first, err := s.shop.createTask(testNAID, testTitleID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again, _ := s.shop.createTask(testNAID, testTitleID); again.ID != first.ID {
+		t.Fatalf("a double tap made a second task")
+	}
+	first.CreatedAt -= 120
+	fresh, _ := s.shop.createTask(testNAID, testTitleID)
+	if fresh.ID == first.ID || first.State != "canceled" || fresh.State != "queued" {
+		t.Fatalf("stale task not replaced: old=%s/%s new=%s/%s", first.ID, first.State, fresh.ID, fresh.State)
+	}
+}

@@ -547,7 +547,15 @@ func (s *shopState) createTask(accountID, titleID string) (*ShopTask, error) {
 	now := time.Now().Unix()
 	for _, t := range s.Tasks {
 		if t.AccountID == accountID && t.TitleID == titleID && (t.State == "queued" || t.State == "downloading" || t.State == "paused") {
-			return t, nil
+			// A press within a minute is the same download (a double tap). A later one means
+			// the console's copy of this task is stuck: it keeps a task it already holds and
+			// never re-checks it (hardware 2026-10-05: an install parked on an old "no rights"
+			// answer, pushmo answering 304 to every retry). A fresh id changes the list, so NIM
+			// drops the old task and runs the new one from the start.
+			if now-t.CreatedAt < 60 {
+				return t, nil
+			}
+			t.State, t.FailReason, t.UpdatedAt = "canceled", "superseded", now
 		}
 	}
 	t := &ShopTask{
