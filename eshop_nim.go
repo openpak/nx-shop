@@ -224,14 +224,15 @@ func taskUUID(id string) string {
 // ---------- veer ----------
 
 // veer tells NIM which content vendor to use. OpenPak has one: the atum host this adapter
-// serves. The TTL is a day; the policy does not change while the server runs.
+// serves. The TTL is a day; the policy does not change while the server runs. 23.x NIM asks
+// /v6 with the same selectors ($.ttl, $.weights; hardware 2026-10-05), so both get one answer.
 func (s *server) veer(w http.ResponseWriter, r *http.Request, body []byte) {
-	if r.URL.Path != "/v5/policy.json" {
+	if r.URL.Path != "/v5/policy.json" && r.URL.Path != "/v6/policy.json" {
 		dump(r, body, "!! UNHANDLED veer")
 		writeJSON(w, 404, map[string]any{"status": 404, "title": "not found"})
 		return
 	}
-	log.Printf("[shop] veer policy context=%q last_vendor=%q -> atum", r.URL.Query().Get("context"), r.URL.Query().Get("last_vendor"))
+	log.Printf("[shop] veer %s context=%q last_vendor=%q -> atum", r.URL.Path, r.URL.Query().Get("context"), r.URL.Query().Get("last_vendor"))
 	writeJSON(w, 200, map[string]any{
 		"ttl":     86400,
 		"weights": []any{map[string]any{"vendor": "atum", "weight": 100}},

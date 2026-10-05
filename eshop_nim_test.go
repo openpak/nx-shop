@@ -285,11 +285,13 @@ func TestAtumServesPatchContentUnderTheApplicationToken(t *testing.T) {
 // veer picks atum, in the recovered {ttl, weights[{vendor, weight}]} shape.
 func TestVeerPolicyChoosesAtum(t *testing.T) {
 	s := shopServerFor(t)
-	rec := hostReq(s, "veer.hac.lp1.d4c.nintendo.net", "GET", "/v5/policy.json?context=0", "", "")
-	d := decodeBody(t, rec)
-	ws, _ := d["weights"].([]any)
-	if rec.Code != 200 || d["ttl"] == nil || len(ws) != 1 || ws[0].(map[string]any)["vendor"] != "atum" {
-		t.Errorf("veer = %d %s", rec.Code, rec.Body.String())
+	for _, v := range []string{"v5", "v6"} { // v6: 23.x NIM
+		rec := hostReq(s, "veer.hac.lp1.d4c.nintendo.net", "GET", "/"+v+"/policy.json?context=0", "", "")
+		d := decodeBody(t, rec)
+		ws, _ := d["weights"].([]any)
+		if rec.Code != 200 || d["ttl"] == nil || len(ws) != 1 || ws[0].(map[string]any)["vendor"] != "atum" {
+			t.Errorf("veer %s = %d %s", v, rec.Code, rec.Body.String())
+		}
 	}
 }
 
