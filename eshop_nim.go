@@ -221,6 +221,12 @@ func (s *server) pegasus(w http.ResponseWriter, r *http.Request, body []byte) {
 		}
 		log.Printf("[shop] pegasus recommend-versions %s -> %d record(s)", id, len(out))
 		writeJSON(w, 200, map[string]any{"recommendVersions": out})
+	case strings.HasPrefix(p, "/v1/apps/") && strings.HasSuffix(p, "/latest/platforms"):
+		// qlaunch's Save Data Cloud screen [olsc 23.0.1]: all three fields are required
+		// (else 2179-3720) and only "NX" counts as playable. Every title is an NX title here.
+		id := strings.ToLower(strings.TrimSuffix(strings.TrimPrefix(p, "/v1/apps/"), "/latest/platforms"))
+		log.Printf("[shop] pegasus platforms %s -> NX", id)
+		writeJSON(w, 200, map[string]any{"applicationId": id, "releaseVersion": 0, "platforms": []string{"NX"}})
 	default:
 		// /v1/ratinglist: NIM fetches it into ns's rating list database; the body's
 		// shape is not recovered, so it is refused rather than guessed.

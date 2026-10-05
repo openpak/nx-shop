@@ -377,6 +377,11 @@ func TestPegasusRecommendVersionsAnswersFromTheCatalog(t *testing.T) {
 	if rec := hostReq(s, pegasusHost, "GET", "/v1/apps/0100000000010000/recommend-versions", "", ""); rec.Code != 404 {
 		t.Errorf("recommend-versions for a title we do not carry = %d, want 404", rec.Code)
 	}
+	// olsc's platform check: the id back, release 0, NX.
+	if rec := hostReq(s, pegasusHost, "GET", "/v1/apps/0100000000010000/latest/platforms", "", ""); rec.Code != 200 ||
+		strings.TrimSpace(rec.Body.String()) != `{"applicationId":"0100000000010000","platforms":["NX"],"releaseVersion":0}` {
+		t.Errorf("platforms = %d %s", rec.Code, rec.Body.String())
+	}
 	// The rating list's body is not recovered: refused, not guessed.
 	if rec := hostReq(s, pegasusHost, "GET", "/v1/ratinglist", "", ""); rec.Code != 404 {
 		t.Errorf("ratinglist = %d, want a recorded 404", rec.Code)
