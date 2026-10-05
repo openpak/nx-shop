@@ -53,7 +53,7 @@ type server struct {
 // fixedNames are the shop names that were on nx-baas's fixed certificate, kept fixed here:
 // the console authenticates some names strictly and refused an on-demand certificate on
 // those (2123-0013). The rest of the family (savanna, pushmo, tagaya, veer, superfly, aqua,
-// sun, idbe, bvc) got on-demand certificates there and gets them here.
+// sun, idbe, bvc) got on-demand certificates there and gets them here, as does 23.x's pegasus.
 var fixedNames = []string{
 	"bugyo.hac.lp1.eshop.nintendo.net", "beach.hac.lp1.eshop.nintendo.net", "pearljam.hac.lp1.eshop.nintendo.net",
 	"atum.hac.lp1.d4c.nintendo.net", "tigers.hac.lp1.dragons.nintendo.net", "dragonst.hac.lp1.dragons.nintendo.net",
@@ -102,6 +102,9 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.pushmo(w, r, body)
 	case strings.HasPrefix(host, "tagaya."):
 		s.tagaya(w, r, body)
+	case strings.HasPrefix(host, "pegasus."):
+		// 23.x's version list and recommended versions (tagaya and superfly before it).
+		s.pegasus(w, r, body)
 	case strings.HasPrefix(host, "veer."):
 		s.veer(w, r, body)
 	// NIM's other d4c hosts: system-update metadata (sun, aqua), the version lookup

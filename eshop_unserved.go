@@ -206,6 +206,15 @@ func (s *server) nimUnserved(w http.ResponseWriter, r *http.Request, body []byte
 		log.Printf("[shop] nim %s %s -> no borrowers", r.Method, p)
 		writeJSON(w, 200, map[string]any{"candidates": []any{}})
 		return true
+	// "May this account be unregistered from this console?" [nim 23.0.1:
+	// /v1/accounts/unregisterable, parser 0x28f520]. isUnregisterable (bool) is
+	// required -- without it the task fails with 0x15489 -- and lastOperatedAt (an
+	// integer) is optional. OpenPak puts no limit on unregistering, so yes is the true
+	// answer, and no operation time is invented.
+	case p == "/v1/accounts/unregisterable":
+		log.Printf("[shop] nim %s %s -> unregisterable", r.Method, p)
+		writeJSON(w, 200, map[string]any{"isUnregisterable": true})
+		return true
 	case strings.HasPrefix(p, "/v1/accounts/in-same-family"):
 		log.Printf("[shop] nim %s %s -> not in a family", r.Method, p)
 		writeJSON(w, 200, map[string]any{"inSameFamily": false})
@@ -238,7 +247,8 @@ func (s *server) nimUnserved(w http.ResponseWriter, r *http.Request, body []byte
 	// SystemUpdate meta, and its installed version must be >= the one sent, else
 	// 0x2bc89. The SystemUpdate title at version 0 is therefore the "no
 	// requirement, go ahead" answer on every console; we serve no system images,
-	// so we never name a real floor.
+	// so we never name a real floor. 23.x no longer asks (the URL is gone from its NIM);
+	// this stays for 22.x consoles.
 	case strings.HasPrefix(p, "/required_system_update_meta"):
 		log.Printf("[shop] nim aqua required system update device=%s -> none (0100000000000816 v0)", r.URL.Query().Get("device_id"))
 		writeJSON(w, 200, map[string]any{

@@ -282,16 +282,113 @@ func TestAtumServesPatchContentUnderTheApplicationToken(t *testing.T) {
 	}
 }
 
-// veer picks atum, in the recovered {ttl, weights[{vendor, weight}]} shape.
+// veer picks atum, in the recovered {ttl, weights[{vendor, weight}]} shape. The vendor is
+// NIM's CDN name for atum ("akamai"); "atum" itself is not in either firmware's table.
+// 22.x asks /v5, 23.x /v6.
 func TestVeerPolicyChoosesAtum(t *testing.T) {
 	s := shopServerFor(t)
-	for _, v := range []string{"v5", "v6"} { // v6: 23.x NIM
-		rec := hostReq(s, "veer.hac.lp1.d4c.nintendo.net", "GET", "/"+v+"/policy.json?context=0", "", "")
+	for _, path := range []string{"/v5/policy.json?context=0", "/v6/policy.json?context=0&last_vendor=akamai"} {
+		rec := hostReq(s, "veer.hac.lp1.d4c.nintendo.net", "GET", path, "", "")
 		d := decodeBody(t, rec)
 		ws, _ := d["weights"].([]any)
-		if rec.Code != 200 || d["ttl"] == nil || len(ws) != 1 || ws[0].(map[string]any)["vendor"] != "atum" {
-			t.Errorf("veer %s = %d %s", v, rec.Code, rec.Body.String())
+		if rec.Code != 200 || d["ttl"] == nil || len(ws) != 1 || ws[0].(map[string]any)["vendor"] != "akamai" {
+			t.Errorf("veer %s = %d %s", path, rec.Code, rec.Body.String())
 		}
+	}
+}
+
+const pegasusHost = "pegasus.hac.lp1.pegasus.srv.nintendo.net"
+
+// 23.x's version list: pegasus /v1/versionlist in ns's {formatVersion 2, lastModified,
+// cnmts[{id, version, requiredVersion}]} shape, with the same ETag behaviour as tagaya.
+// NIM sends the kept tag back quoted, weak or not.
+func TestPegasusVersionListIsTheVersion2Document(t *testing.T) {
+	s := shopServerFor(t)
+	rec := hostReq(s, pegasusHost, "GET", "/v1/versionlist", "", "")
+	if rec.Code != 200 {
+		t.Fatalf("versionlist = %d", rec.Code)
+	}
+	var doc struct {
+		FormatVersion *int   `json:"formatVersion"`
+		LastModified  *int64 `json:"lastModified"`
+		Cnmts         []struct {
+			ID              string  `json:"id"`
+			Version         *uint32 `json:"version"`
+			RequiredVersion *uint32 `json:"requiredVersion"`
+		} `json:"cnmts"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &doc); err != nil {
+		t.Fatal(err)
+	}
+	if doc.FormatVersion == nil || *doc.FormatVersion != 2 || doc.LastModified == nil || len(doc.Cnmts) != 1 {
+		t.Fatalf("versionlist = %s", rec.Body.String())
+	}
+	c := doc.Cnmts[0]
+	// requiredVersion must be present: 23.x reads a missing one as the version (a forced update).
+	if c.ID != testTitleID || c.Version == nil || *c.Version != 65536 || c.RequiredVersion == nil || *c.RequiredVersion != 0 {
+		t.Fatalf("versionlist entry = %s", rec.Body.String())
+	}
+	etag := rec.Header().Get("ETag")
+	if len(etag) < 3 || etag[0] != '"' || etag[len(etag)-1] != '"' || len(etag)-2 > 0x45 {
+		t.Fatalf("ETag %q is not one NIM keeps (quoted, at most 69 characters)", etag)
+	}
+	for _, inm := range []string{etag, "W/" + etag} {
+		req := httptest.NewRequest("GET", "https://"+pegasusHost+"/v1/versionlist", nil)
+		req.Host = pegasusHost
+		req.Header.Set("If-None-Match", inm)
+		w := httptest.NewRecorder()
+		s.ServeHTTP(w, req)
+		if w.Code != http.StatusNotModified {
+			t.Errorf("If-None-Match %s = %d, want 304", inm, w.Code)
+		}
+	}
+	withPatch(t, s, 131072)
+	rec = hostReq(s, pegasusHost, "GET", "/v1/versionlist", "", "")
+	if !strings.Contains(rec.Body.String(), `"version":131072`) || rec.Header().Get("ETag") == etag {
+		t.Errorf("published update not in the list or ETag unchanged: %s", rec.Body.String())
+	}
+	// 22.x keeps its own document on tagaya.
+	if rec := hostReq(s, "tagaya.hac.lp1.eshop.nintendo.net", "GET", "/tagaya/hac_versionlist", "", ""); !strings.Contains(rec.Body.String(), `"titles":[`) {
+		t.Errorf("tagaya lost the 22.x shape: %s", rec.Body.String())
+	}
+}
+
+// 23.x's superfly: pegasus /v1/apps/<id>/recommend-versions, the application and its patch.
+func TestPegasusRecommendVersionsAnswersFromTheCatalog(t *testing.T) {
+	s := shopServerFor(t)
+	withPatch(t, s, 131072)
+	rec := hostReq(s, pegasusHost, "GET", "/v1/apps/"+testTitleID+"/recommend-versions", "", "")
+	var doc struct {
+		RecommendVersions []struct {
+			CnmtID           string `json:"cnmtId"`
+			CnmtType         string `json:"cnmtType"`
+			RecommendVersion uint32 `json:"recommendVersion"`
+		} `json:"recommendVersions"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &doc); err != nil || rec.Code != 200 {
+		t.Fatalf("recommend-versions = %d %s", rec.Code, rec.Body.String())
+	}
+	rv := doc.RecommendVersions
+	if len(rv) != 2 || rv[0].CnmtType != "Application" || rv[0].CnmtID != testTitleID ||
+		rv[1].CnmtType != "Patch" || rv[1].CnmtID != testPatchID || rv[1].RecommendVersion != 131072 {
+		t.Errorf("recommend-versions = %s", rec.Body.String())
+	}
+	// A title we do not carry: 404, which NIM takes as "no record".
+	if rec := hostReq(s, pegasusHost, "GET", "/v1/apps/0100000000010000/recommend-versions", "", ""); rec.Code != 404 {
+		t.Errorf("recommend-versions for a title we do not carry = %d, want 404", rec.Code)
+	}
+	// The rating list's body is not recovered: refused, not guessed.
+	if rec := hostReq(s, pegasusHost, "GET", "/v1/ratinglist", "", ""); rec.Code != 404 {
+		t.Errorf("ratinglist = %d, want a recorded 404", rec.Code)
+	}
+}
+
+// 23.x asks whether an account may be unregistered; isUnregisterable is the required key.
+func TestUnregisterableAnswersYes(t *testing.T) {
+	s := shopServerFor(t)
+	rec := hostReq(s, "superfly.hac.lp1.d4c.nintendo.net", "GET", "/v1/accounts/unregisterable", "", "")
+	if d := decodeBody(t, rec); rec.Code != 200 || d["isUnregisterable"] != true {
+		t.Errorf("unregisterable = %d %s", rec.Code, rec.Body.String())
 	}
 }
 

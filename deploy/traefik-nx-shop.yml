@@ -22,6 +22,7 @@ tcp:
         HostSNI(`pearljam.hac.lp1.eshop.nintendo.net`) ||
         HostSNI(`pushmo.hac.lp1.eshop.nintendo.net`) ||
         HostSNI(`tagaya.hac.lp1.eshop.nintendo.net`) ||
+        HostSNI(`pegasus.hac.lp1.pegasus.srv.nintendo.net`) ||
         HostSNI(`atum.hac.lp1.d4c.nintendo.net`) ||
         HostSNI(`atumn.hac.lp1.d4c.nintendo.net`) ||
         HostSNI(`superfly.hac.lp1.d4c.nintendo.net`) ||

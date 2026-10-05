@@ -1,6 +1,6 @@
 # nx-shop
 
-The OpenPak native eShop for a real Switch on firmware 22.5.0, split out of
+The OpenPak native eShop for a real Switch on firmware 22.5.0 and 23.0.1, split out of
 [nx-baas](../nx-baas) so a shop release restarts only the shop: consoles keep their push
 connections and logins, and nothing but the store notices a deploy.
 
