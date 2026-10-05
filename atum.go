@@ -139,7 +139,7 @@ func (s *server) atum(w http.ResponseWriter, r *http.Request, body []byte) {
 			return
 		}
 		if strings.HasSuffix(p, "/d") {
-			s.atumHashes(w, titleID, contentID, c)
+			s.atumHashes(w, r, titleID, contentID, path, c)
 			return
 		}
 	}
@@ -149,17 +149,58 @@ func (s *server) atum(w http.ResponseWriter, r *http.Request, body []byte) {
 // atumHashes answers the /d route with the field names NIM's own parser reads
 // [firmware, nim strings]. The wiki names the route ("JSON object containing
 // content hashes") but not its fields; these come from the module.
-func (s *server) atumHashes(w http.ResponseWriter, titleID, contentID string, c ShopContent) {
+//
+// partitioning_size must be exactly 16 MiB: 23.0.1 NIM's /d task (0x1fa140) fails
+// with 0x15489 (2137-0170) on any other value, and partitioned_content_hashes[i] is
+// the SHA-256 of partition i (parser 0x1fb130, 32 bytes each). The one-partition
+// answer this used to send only worked for content under 16 MiB. A
+// digest_algorithm_for_partitioned_content other than "SHA-256" is also 0x15489.
+func (s *server) atumHashes(w http.ResponseWriter, r *http.Request, titleID, contentID, path string, c ShopContent) {
+	hashes, size, err := partitionHashes(path, c)
+	if err != nil {
+		atumErr(w, r, 500, "content unreadable", contentID)
+		return
+	}
 	writeJSON(w, 200, map[string]any{
-		// Names from NIM's own parser [firmware, nim strings]: content_size,
-		// partitioned_content_hashes[%d] and partitioning_size. "size" and
-		// "hashes" were this file's own guesses and NIM reads neither.
-		// digest_algorithm_for_partitioned_content is read too; its value
-		// space is not recovered, so it is left out rather than invented.
 		"content_id": contentID, "title_id": titleID,
-		"content_size": c.Size, "partitioning_size": c.Size,
-		"partitioned_content_hashes": []string{c.SHA256},
+		"content_size": size, "partitioning_size": atumPartition,
+		"partitioned_content_hashes":               hashes,
+		"digest_algorithm_for_partitioned_content": "SHA-256",
 	})
+}
+
+const atumPartition = 16 << 20
+
+// partitionHashes is the SHA-256 of each 16 MiB partition of a content, and its size.
+// ponytail: hashed per request (81 MB in well under a second); cache by path+mtime if
+// big titles make /d slow.
+func partitionHashes(path string, c ShopContent) ([]string, int64, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer f.Close()
+	size := c.Size
+	if size <= 0 {
+		st, err := f.Stat()
+		if err != nil {
+			return nil, 0, err
+		}
+		size = st.Size()
+	}
+	src := io.NewSectionReader(f, c.Offset, size)
+	hashes := []string{}
+	for off := int64(0); off < size || off == 0; off += atumPartition {
+		h := sha256.New()
+		if _, err := io.Copy(h, io.NewSectionReader(src, off, min(atumPartition, size-off))); err != nil {
+			return nil, 0, err
+		}
+		hashes = append(hashes, hex.EncodeToString(h.Sum(nil)))
+		if size == 0 {
+			break
+		}
+	}
+	return hashes, size, nil
 }
 
 // atumNamedHeaders sets the headers NIM takes the content's identity from on the

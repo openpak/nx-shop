@@ -162,6 +162,26 @@ func TestAtumHashManifestMatchesTheCatalog(t *testing.T) {
 	if m.Size != int64(len(content)) {
 		t.Errorf("manifest size %d, want %d", m.Size, len(content))
 	}
+	if !strings.Contains(rec.Body.String(), `"partitioning_size":16777216`) {
+		t.Errorf("partitioning_size is not 16 MiB (23.x NIM refuses it, 2137-0170): %s", rec.Body.String())
+	}
+}
+
+// Content over 16 MiB gets one hash per 16 MiB partition, the last one short.
+func TestPartitionHashesSplitAt16MiB(t *testing.T) {
+	data := make([]byte, 16<<20+5)
+	for i := range data {
+		data[i] = byte(i * 7)
+	}
+	path := filepath.Join(t.TempDir(), "big.nca")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	hashes, size, err := partitionHashes(path, ShopContent{})
+	if err != nil || size != int64(len(data)) || len(hashes) != 2 ||
+		hashes[0] != sha256Hex(data[:16<<20]) || hashes[1] != sha256Hex(data[16<<20:]) {
+		t.Errorf("partitionHashes = %v %d %v", hashes, size, err)
+	}
 }
 
 // SHP-05: a catalog row whose file vanished is the missing-content case — the download
