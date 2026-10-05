@@ -38,6 +38,7 @@ type identity interface {
 // registrations is what the shop asks the penne side.
 type registrations interface {
 	Registration(ctx context.Context, penneID string) (*nxapi.Registration, error)
+	ConsoleRegistration(ctx context.Context, deviceCert string) (*nxapi.Registration, error)
 }
 
 // coreUser is the BAAS user, or nil when the core does not know it (or cannot be reached).
@@ -169,7 +170,28 @@ func (s *server) penneShopAccounts(penneID string) []string {
 		log.Printf("[shop] pushmo: penne registration %s: %v", penneID, err)
 		return nil
 	}
-	if !reg.Live {
+	return s.registrationAccounts(ctx, reg)
+}
+
+// consoleAccounts is every profile's Nintendo Account on the console a device certificate
+// names, through its Penne registration. Licence checks (dragons rights) carry only that
+// certificate; without this a profile with no device link was told it owns nothing and its
+// install hung on a blank HOME tile (hardware 2026-10-05, 2206-1017 on launch).
+func (s *server) consoleAccounts(deviceCert string) []string {
+	if s.penne == nil || deviceCert == "" {
+		return nil
+	}
+	ctx := context.Background()
+	reg, err := s.penne.ConsoleRegistration(ctx, deviceCert)
+	if err != nil {
+		log.Printf("[shop] rights: console %s: %v", deviceCert, err)
+		return nil
+	}
+	return s.registrationAccounts(ctx, reg)
+}
+
+func (s *server) registrationAccounts(ctx context.Context, reg *nxapi.Registration) []string {
+	if reg == nil || !reg.Live {
 		return nil
 	}
 	var out []string

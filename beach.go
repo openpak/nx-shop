@@ -546,7 +546,14 @@ func (s *shopState) accountsForDevice(deviceID string) []string {
 // token on the request names one more account outright; a bare Nintendo-Account-Id header
 // never does (principal binding).
 func (s *server) rightsAccounts(r *http.Request) []string {
-	accounts := s.shop.accountsForDevice(s.deviceIdentity(r))
+	device := s.deviceIdentity(r)
+	accounts := s.shop.accountsForDevice(device)
+	// Every profile on this console, not only one with a device link (each profile buys).
+	for _, a := range s.consoleAccounts(device) {
+		if !slices.Contains(accounts, a) {
+			accounts = append(accounts, a)
+		}
+	}
 	if account, _ := s.shopPrincipal(r); account != "" {
 		found := false
 		for _, a := range accounts {

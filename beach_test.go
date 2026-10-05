@@ -214,3 +214,28 @@ func TestEdgeTokenTitlesFollowForwardedNAIDTokens(t *testing.T) {
 		t.Errorf("unverified token granted %s", rec.Body.String())
 	}
 }
+
+// Every profile on a console gets its titles: licence checks carry only the console's
+// certificate, and a second profile has no device link. Its account is found through the
+// console's Penne registration (hardware 2026-10-05: a second profile's install hung on a
+// blank HOME tile and launch failed 2206-1017).
+func TestDragonsAvailableElicensesForEveryProfileOnTheConsole(t *testing.T) {
+	s := shopServerFor(t)
+	const naID2, user2 = "fedcba9876543210", "1111222233334444"
+	core := s.core.(*fakeCore)
+	core.addUser(user2, 8, "second")
+	core.rememberNA(naID2, user2)
+	core.setNaID(user2, naID2)
+	p := testPenne(s)
+	id := p.register("0123456789abcdef")
+	p.regs[id].Users = []string{user2}
+	p.consoles[testDevice] = id
+	rid := rightsIDFor(testTitleID)
+	shopReq(s, "POST", "/ashigaru/api/v1/catalog/"+testTitleID+"/acquire", naIDTokenForNA(s, naID2), "")
+	rec := dragonsReq(s, "dragons.hac.lp1.dragons.nintendo.net", "POST", "/v2/rights/available_elicenses",
+		`{"rights_ids":["`+rid+`"]}`)
+	a := decodeBody(t, rec)["available_elicenses"].([]any)[0].(map[string]any)
+	if rec.Code != 200 || a["is_available"] != true {
+		t.Fatalf("second profile: %d %v", rec.Code, a)
+	}
+}

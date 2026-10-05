@@ -137,11 +137,21 @@ func (c *fakeCore) Avatar(_ context.Context, userID string) (*http.Response, err
 
 // fakePenne is the penne API's registrations.
 type fakePenne struct {
-	mu   sync.Mutex
-	regs map[string]*nxapi.Registration
+	mu       sync.Mutex
+	regs     map[string]*nxapi.Registration
+	consoles map[string]string // device certificate -> penne id
 }
 
-func newFakePenne() *fakePenne { return &fakePenne{regs: map[string]*nxapi.Registration{}} }
+func newFakePenne() *fakePenne {
+	return &fakePenne{regs: map[string]*nxapi.Registration{}, consoles: map[string]string{}}
+}
+
+func (p *fakePenne) ConsoleRegistration(ctx context.Context, cert string) (*nxapi.Registration, error) {
+	p.mu.Lock()
+	id := p.consoles[cert]
+	p.mu.Unlock()
+	return p.Registration(ctx, id)
+}
 
 func testPenne(s *server) *fakePenne { return s.penne.(*fakePenne) }
 
