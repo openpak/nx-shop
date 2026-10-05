@@ -27,6 +27,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/openpak/nx-common/nxapi"
 )
 
 // defaultShopUploadMax is 8 GiB: a large homebrew NSP fits, a runaway client does not.
@@ -985,8 +987,12 @@ func (s *server) adminAccount(w http.ResponseWriter, r *http.Request, accountID,
 			return adminErr(404, "not_found", "account lookup needs the identity core; pass ?na_id=")
 		}
 		a, err := s.core.Account(r.Context(), accountID)
-		if err != nil || a.NaID == "" {
+		switch {
+		case errors.Is(err, nxapi.ErrNotFound) || err == nil && a.NaID == "":
 			return adminErr(404, "not_found", "account %s has no Switch identity here; pass ?na_id=", accountID)
+		case err != nil:
+			// The core being away is not an answer about the account.
+			return adminErr(502, "core_unreachable", "the identity core could not be asked about %s: %v", accountID, err)
 		}
 		naID = a.NaID
 	}

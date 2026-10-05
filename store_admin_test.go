@@ -350,6 +350,12 @@ func TestStoreAdminAccountViews(t *testing.T) {
 	if rec := adminDo(t, s, "GET", "/internal/store/accounts/acc-2/entitlements", nil, ""); rec.Code != 404 {
 		t.Fatalf("account without a Switch identity = %d", rec.Code)
 	}
+	// The core away is a 502, not "this account has no Switch identity".
+	core.down = true
+	if rec := adminDo(t, s, "GET", "/internal/store/accounts/acc-1/entitlements", nil, ""); rec.Code != 502 {
+		t.Fatalf("account lookup with the core down = %d, want 502", rec.Code)
+	}
+	core.down = false
 	stats := adminJSON(t, adminDo(t, s, "GET", "/internal/store/stats", nil, ""))
 	row := stats["titles"].([]any)[0].(map[string]any)
 	if row["entitlements"].(float64) != 1 || row["tasks"].(map[string]any)["queued"].(float64) != 1 {

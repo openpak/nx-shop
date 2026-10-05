@@ -195,7 +195,7 @@ func (s *server) serveAvatar(w http.ResponseWriter, r *http.Request, baasUser st
 		return
 	}
 	defer resp.Body.Close()
-	for _, h := range []string{"Content-Type", "Cache-Control"} {
+	for _, h := range []string{"Content-Type", "Content-Length", "Cache-Control", "ETag", "Last-Modified"} {
 		if v := resp.Header.Get(h); v != "" {
 			w.Header().Set(h, v)
 		}

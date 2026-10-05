@@ -350,4 +350,8 @@ func TestShopAvatarIsTheSignedInUsers(t *testing.T) {
 	if rec.Code != 200 || rec.Header().Get("Content-Type") != "image/jpeg" || rec.Body.Len() == 0 {
 		t.Errorf("avatar = %d %s %d bytes", rec.Code, rec.Header().Get("Content-Type"), rec.Body.Len())
 	}
+	// The core's validators pass through, so the console can revalidate the picture.
+	if rec.Header().Get("ETag") != `"pic-1"` {
+		t.Errorf("avatar ETag = %q, want the core's", rec.Header().Get("ETag"))
+	}
 }

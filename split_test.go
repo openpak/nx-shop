@@ -58,9 +58,18 @@ func TestInternalListenerServesForwardedConsoleRoutes(t *testing.T) {
 			t.Errorf("forwarded %s%s = %d %.200s", c.host, c.path, rec.Code, rec.Body)
 		}
 	}
+	// A console host never reaches the admin API, even with the key.
 	req := httptest.NewRequest("GET", "http://openpak-nx-shop:20070/internal/store/titles", nil)
+	req.Host = "hac.lp1.savanna.srv.nintendo.net"
 	req.Header.Set("X-Internal-Key", "k")
 	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code == 200 || strings.Contains(rec.Body.String(), `"titles"`) {
+		t.Fatalf("console host reached the store admin API: %d %.100s", rec.Code, rec.Body)
+	}
+	req = httptest.NewRequest("GET", "http://openpak-nx-shop:20070/internal/store/titles", nil)
+	req.Header.Set("X-Internal-Key", "k")
+	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 	if rec.Code != 200 {
 		t.Errorf("store admin on the internal listener = %d", rec.Code)

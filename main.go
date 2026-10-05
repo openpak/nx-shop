@@ -129,13 +129,16 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// internalAPI is the plain-HTTP listener: the store admin API, a health check, and the
-// console routes for requests nx-baas forwards with the console's Host kept.
+// internalAPI is the plain-HTTP listener: the console routes for requests nx-baas forwards
+// with the console's Host kept, and -- for every other Host -- the store admin API and a
+// health check. A console host never reaches the admin routes (nxhttp.SplitListener).
 func (s *server) internalAPI() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/internal/store/", s.storeAdmin)
-	mux.Handle("/", s)
-	return mux
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, 200, map[string]any{"status": "ok", "service": "nx-shop"})
+	})
+	return nxhttp.SplitListener(s, mux)
 }
 
 func main() {

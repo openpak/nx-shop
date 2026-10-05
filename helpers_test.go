@@ -110,6 +110,9 @@ func (c *fakeCore) NA(_ context.Context, naID string) (*nxapi.NA, error) {
 func (c *fakeCore) Account(_ context.Context, accountID string) (*nxapi.Account, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if c.down {
+		return nil, errCoreDown
+	}
 	if na := c.accts[accountID]; na != "" {
 		return &nxapi.Account{AccountID: accountID, NaID: na}, nil
 	}
@@ -128,7 +131,7 @@ func (c *fakeCore) Avatar(_ context.Context, userID string) (*http.Response, err
 	if c.users[userID] == nil {
 		return &http.Response{StatusCode: 404, Header: http.Header{}, Body: io.NopCloser(bytes.NewReader(nil))}, nil
 	}
-	h := http.Header{"Content-Type": {"image/jpeg"}, "Cache-Control": {"public, max-age=3600"}}
+	h := http.Header{"Content-Type": {"image/jpeg"}, "Cache-Control": {"public, max-age=3600"}, "Etag": {`"pic-1"`}}
 	return &http.Response{StatusCode: 200, Header: h, Body: io.NopCloser(bytes.NewReader(testJPEG))}, nil
 }
 
