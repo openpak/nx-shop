@@ -748,16 +748,35 @@ function identify(done){
  if(!f){return;}
  var CB={};
  var tries=[[CB],[false,CB],[true,CB],[CB,CB],['',CB],[{},CB]];
- for(var i=0;i<tries.length;i++){
+ // One shape at a time: a throw, a rejection or an answer without a token moves on to the
+ // next (23.0.1 rejects [false,CB] with an object; every field of it is reported).
+ function attempt(i){
+  if(token||i>=tries.length){return;}
+  var next=function(){attempt(i+1);};
   var args=tries[i].map(function(a){return a===CB?function(v){take({where:f.where,value:v});}:a;});
-  try{
-   var r=f.fn.apply(f.self,args);
-   report({event:'identify_call',where:f.where,declared:f.fn.length,tried:i,returned:brief(r)});
-   if(r&&typeof(r.then)==='function'){r.then(function(v){take({where:f.where,value:v});},function(e){take({where:f.where,value:{error:String(e)}});});}
-   else if(r!==undefined){take({where:f.where,value:r});}
-   return;
-  }catch(e){report({event:'identify_call',where:f.where,declared:f.fn.length,tried:i,error:String(e)});}
+  var r;
+  try{r=f.fn.apply(f.self,args);}
+  catch(e){report({event:'identify_call',where:f.where,declared:f.fn.length,tried:i,error:errInfo(e)});next();return;}
+  report({event:'identify_call',where:f.where,declared:f.fn.length,tried:i,returned:brief(r)});
+  if(r&&typeof(r.then)==='function'){
+   r.then(function(v){take({where:f.where,value:v});if(!token){next();}},
+          function(e){report({event:'identify_reject',where:f.where,tried:i,error:errInfo(e)});next();});
+  }else{
+   if(r!==undefined){take({where:f.where,value:r});}
+   if(!token){setTimeout(next,1500);}  // a callback-style answer may still be on its way
+  }
  }
+ attempt(0);
+}
+function errInfo(e){
+ var o={str:String(e),json:brief(e),type:typeof(e)};
+ if(e&&typeof(e)==='object'){
+  try{o.keys=Object.keys(e);o.own=Object.getOwnPropertyNames(e);}catch(x){}
+  ['code','result','errorCode','error_code','message','name','description','module','description_code','resultCode'].forEach(function(k){
+   try{if(e[k]!==undefined){o[k]=brief(e[k]);}}catch(x){}});
+  try{var pr=Object.getPrototypeOf(e);o.proto=pr&&pr.constructor&&pr.constructor.name;}catch(x){}
+ }
+ return o;
 }
 
 // The user's own picture, top right, once the account is known.
