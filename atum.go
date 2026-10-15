@@ -114,6 +114,17 @@ func (s *server) atum(w http.ResponseWriter, r *http.Request, body []byte) {
 	// The catalog is the authority on what exists and what the bytes hash to.
 	var path string
 	var c ShopContent
+	if namedFile == "control" {
+		// A platform pseudo-title (reserved.go): named from a file, never from the catalog.
+		if rp := s.shop.reservedControl(titleID); rp != "" {
+			if err := s.atumNamedHeaders(w, titleID, "control", rp, ShopContent{}); err != nil {
+				atumErr(w, r, 500, "cannot hash content", err.Error())
+				return
+			}
+			s.serveContentRange(w, r, rp, ShopContent{}, titleID, device)
+			return
+		}
+	}
 	if namedFile != "" {
 		path, c = s.shop.titleFile(titleID, namedFile)
 		if path == "" {
