@@ -140,10 +140,18 @@ type fakePenne struct {
 	mu       sync.Mutex
 	regs     map[string]*nxapi.Registration
 	consoles map[string]string // device certificate -> penne id
+	sent     []nxapi.DeviceMessage
 }
 
 func newFakePenne() *fakePenne {
 	return &fakePenne{regs: map[string]*nxapi.Registration{}, consoles: map[string]string{}}
+}
+
+func (p *fakePenne) Broadcast(_ context.Context, m nxapi.DeviceMessage) (*nxapi.DeviceResult, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.sent = append(p.sent, m)
+	return &nxapi.DeviceResult{Connections: 1}, nil
 }
 
 func (p *fakePenne) ConsoleRegistration(ctx context.Context, cert string) (*nxapi.Registration, error) {

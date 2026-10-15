@@ -39,6 +39,7 @@ type identity interface {
 type registrations interface {
 	Registration(ctx context.Context, penneID string) (*nxapi.Registration, error)
 	ConsoleRegistration(ctx context.Context, deviceCert string) (*nxapi.Registration, error)
+	Broadcast(ctx context.Context, m nxapi.DeviceMessage) (*nxapi.DeviceResult, error)
 }
 
 // coreUser is the BAAS user, or nil when the core does not know it (or cannot be reached).

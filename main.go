@@ -33,6 +33,7 @@ import (
 	"github.com/openpak/nx-common/nxhttp"
 	"github.com/openpak/nx-common/nxjwt"
 	"github.com/openpak/nx-common/nxtls"
+	"time"
 )
 
 type server struct {
@@ -172,6 +173,7 @@ func main() {
 		log.Printf("%s internal API listening %s (store admin, forwarded console routes)", logPrefix, addr)
 		log.Fatal(http.ListenAndServe(addr, s.internalAPI()))
 	}()
+	go s.watchVersionList(30 * time.Second)
 	srv := &http.Server{
 		Addr: getenv("NX_ADDR", ":21000"), Handler: s,
 		TLSConfig: nxtls.ServerConfig(logPrefix, fixedNames, getenv("NX_CA_DIR", "/data/ca"), debug),
