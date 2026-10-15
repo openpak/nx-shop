@@ -36,8 +36,8 @@ func TestAtumServesReservedControlOutsideTheCatalog(t *testing.T) {
 	if rec := atumReq(s, "GET", host, "/c1/a/d/01fe00ff00007000", live); rec.Code != 404 {
 		t.Errorf("reserved id with no file = %d, want 404", rec.Code)
 	}
-	if rec := atumReq(s, "GET", host, "/c1/a/d/01fe00fe00006000", live); rec.Code != 404 {
-		t.Errorf("an id outside the reserved prefix = %d, want 404", rec.Code)
+	if rec := atumReq(s, "GET", host, "/c1/a/d/01fe00e000006000", live); rec.Code != 404 {
+		t.Errorf("an id outside the reserved prefixes = %d, want 404", rec.Code)
 	}
 	// It is not a catalog title: nothing lists it.
 	if s.shop.Catalog[id] != nil {
