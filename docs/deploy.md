@@ -30,3 +30,18 @@ build uses, so the build needs only this repository. After changing nx-common, r
 
 Releases are tags: `v*.*.*` runs `.github/workflows/release.yml` on the self-hosted podman
 runner and publishes `ghcr.io/openpak/nx-shop`.
+
+## Porting a fix from nx-baas
+
+The shop files (`shop.go`, `shop_data.go`, `store_admin.go`, `atum.go`, `beach.go`,
+`eshop_*.go`) are nx-baas's at commit `f2cb368`, with the helpers they call kept under their nx-baas
+names (`common.go`), so a fix made there applies here as a patch until nx-baas drops its copy:
+
+    git -C ../nx-baas diff f2cb368 origin/main -- shop.go shop_data.go store_admin.go atum.go \
+        beach.go eshop_nim.go eshop_unserved.go eshop_bundle.go eshop_idbe.go | git apply -3
+
+The deliberate differences: `shopPrincipal`, `shopPrincipalUnchecked`, `idTokenAccounts`
+and `penneShopAccounts` moved to `ident.go`; `/me/avatar` and the admin account lookup ask
+the core. A hunk touching those needs porting by hand.
+
+The split itself (internal API, cut-over and rollback runbook) is in nx-baas `docs/service-split.md`.

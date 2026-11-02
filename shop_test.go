@@ -1,6 +1,6 @@
 package main
 
-// Store workstream tests (prds/native-switch-store-prd.md, SHP-01..05).
+// Store workstream tests (openpak/prds native-switch-store-prd.md, SHP-01..05).
 //
 // These cover the server-side contracts: catalog rendering and language fallback,
 // idempotent durable acquisition, ownership states, the beach/dragons rights surfaces and
