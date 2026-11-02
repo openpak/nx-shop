@@ -28,7 +28,6 @@ NX_CORE_URL=http://openpak-nx-baas:20070 go run .
 ## Docs
 
 - [Protocol](docs/protocol.md)
-- [Evidence](docs/evidence.md)
 - [Deploy](docs/deploy.md)
 - [Notes](docs/notes.md)
 - [Store design](docs/native-shop.md)
