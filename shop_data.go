@@ -7,8 +7,8 @@ package main
 // projections of this state (Beach device links, dragons elicenses, atum content) live in
 // beach.go and atum.go and read from here, so there is exactly one canonical copy.
 //
-// Persistence is one JSON document under $NX_DATA/shop/, saved through the same
-// write-temp-then-rename the user store uses. Entitlements are keyed by (na id, title id)
+// Persistence: the state (everything but the catalog) is one document in Postgres
+// (shop_pg.go); the catalog and content are files under $NX_DATA/shop/. Entitlements are keyed by (na id, title id)
 // and the elicense id is minted once: acquiring twice must return the same entitlement
 // (SHP-03 idempotency), and a restart must not mint a new one (SHP-05).
 
@@ -231,7 +231,9 @@ type ShopTask struct {
 
 type shopState struct {
 	mu  sync.Mutex
-	dir string // $NX_DATA/shop; "" keeps everything in memory (tests)
+	dir string // $NX_DATA/shop: the catalog and content files
+	// store keeps the player/admin state document (shop_pg.go).
+	store shopStore
 
 	Catalog      map[string]*ShopTitle `json:"catalog,omitempty"`
 	Entitlements []*ShopEntitlement    `json:"entitlements"`
@@ -251,45 +253,29 @@ type shopState struct {
 	catalogMod time.Time
 }
 
+// newShopState is a memory-backed state (tests, and the nil-shop fallbacks); production
+// uses openShopState.
 func newShopState(dir string) *shopState {
-	s := &shopState{dir: dir, Catalog: map[string]*ShopTitle{}}
-	s.load()
-	s.loadCatalogFile()
-	if len(s.Catalog) == 0 {
-		s.Catalog = defaultShopCatalog()
+	return newShopStateWith(dir, &memShopStore{})
+}
+
+func newShopStateWith(dir string, store shopStore) *shopState {
+	s, err := newShopStateFrom(dir, store)
+	if err != nil {
+		log.Fatalf("[shop] state: %v", err)
 	}
 	return s
 }
 
-func (s *shopState) load() {
-	if s.dir == "" {
-		return
-	}
-	b, err := os.ReadFile(s.dir + "/state.json")
-	if err != nil {
-		return
-	}
-	json.Unmarshal(b, s)
-}
-
+// save persists the state document; mu is held. A failed write is logged loudly: the
+// in-memory state stays authoritative until the next successful save.
 func (s *shopState) save() {
-	if s.dir == "" {
+	if s.store == nil {
 		return
 	}
-	if err := os.MkdirAll(s.dir, 0o755); err != nil {
-		log.Printf("[shop] save: %v", err)
-		return
+	if err := s.store.saveDoc(s.docBytes()); err != nil {
+		log.Printf("[shop] save to Postgres FAILED: %v", err)
 	}
-	b, err := json.MarshalIndent(s, "", " ")
-	if err != nil {
-		log.Printf("[shop] save: %v", err)
-		return
-	}
-	if err := os.WriteFile(s.dir+"/state.json.tmp", b, 0o600); err != nil {
-		log.Printf("[shop] save: %v", err)
-		return
-	}
-	os.Rename(s.dir+"/state.json.tmp", s.dir+"/state.json")
 }
 
 // loadCatalogFile reads catalog.json when the operator placed one. Entries without a

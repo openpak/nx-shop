@@ -9,7 +9,8 @@
 | `NX_INTERNAL_KEY` | | the shared internal key; the store admin API refuses everyone without it |
 | `NX_ADDR` | `:21000` | TLS for consoles (Traefik SNI passthrough) |
 | `NX_API_ADDR` | `:20070` | plain HTTP: `/internal/store/*` and the console routes nx-baas forwards |
-| `NX_SHOP_DIR` | `$NX_DATA/shop` | catalog.json, state.json, icons, screens, uploaded packages |
+| `NX_SHOP_DIR` | `$NX_DATA/shop` | catalog.json, icons, screens, uploaded packages (content; a legacy state.json is imported once, kept) |
+| `NX_SHOP_DATABASE_URL` | required | Postgres store of the player/admin state (table `shop_state`); the service refuses to start without it |
 | `NX_DATA` | `/data` | scratch beside it: `idbe/` icon cache, `pearljam/` request dumps |
 | `NX_CA_DIR` | `/data/ca` | `ca.pem`/`ca.key` that sign the listener's certificates |
 | `BAAS_SIGNING_KEY`, `BAAS_KID` | `/keys/baas_signing_key.pem`, `openpak-baas-key-1` | nx-baas's key: verifies its tokens, signs edge tokens |

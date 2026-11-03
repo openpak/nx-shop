@@ -14,7 +14,7 @@ ContainerName=openpak-nx-shop
 Image=ghcr.io/openpak/nx-shop:latest
 AutoUpdate=registry
 Network=openpak
-# The shared env file carries NX_INTERNAL_KEY and BAAS_KID; nothing secret goes here.
+# The shared env file carries NX_INTERNAL_KEY, BAAS_KID and NX_SHOP_DATABASE_URL; nothing secret goes here.
 EnvironmentFile=%h/openpak/deploy/.env
 # Environment= wins over the env file, so nx-baas's own values there do not leak in.
 Environment=NX_CORE_URL=http://openpak-nx-baas:20070

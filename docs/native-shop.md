@@ -122,11 +122,12 @@ The catalog's `sha256` must equal the file's; the `/d` manifest serves that pin,
 `serveContentRange` refuses ranges past a file that shrank (missing content fails the
 tasks loudly rather than serving short bytes silently).
 
-State: `$NX_DATA/shop/state.json` (entitlements, tasks, beach links; one document,
-temp+rename saves). Back it up before upgrades; deleting it loses only entitlement
-records — elicense ids are derived deterministically from (account, title), so re-acquire
+State: Postgres table `shop_state` (entitlements, tasks, beach links, stats, bundle
+redemptions, firmware blocklist; one jsonb document, saved whole). The database backup
+covers it; an old `$NX_DATA/shop/state.json` is imported once into an empty database and
+kept. Losing the state loses only entitlement records — elicense ids are derived deterministically from (account, title), so re-acquire
 restores the same identity. Rollback of this branch = redeploy the previous image and
-remove the six new hosts from DNS; the state file is inert to the old build.
+remove the six new hosts from DNS; the old build reads the kept state.json.
 
 Diagnostics: `[shop]`-prefixed log lines carry the full request trail; the diag page's
 ring holds the last 32 bridge reports in memory only. `NX_DEBUG=1` adds full body dumps

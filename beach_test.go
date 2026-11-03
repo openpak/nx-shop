@@ -50,7 +50,7 @@ func TestBeachLinkIsIdempotentAndSurvivesRestart(t *testing.T) {
 	}
 
 	// A restart over the same data keeps the link.
-	s2 := &server{key: s.key, idKid: s.idKid, shop: newShopState(s.shop.dir),
+	s2 := &server{key: s.key, idKid: s.idKid, shop: newShopStateWith(s.shop.dir, s.shop.store),
 		core: s.core, penne: s.penne}
 	req = httptest.NewRequest("GET", "https://beach.hac.lp1.eshop.nintendo.net/v1/my/devices?device_type_id=6&lang=en", nil)
 	req.Host = "beach.hac.lp1.eshop.nintendo.net"

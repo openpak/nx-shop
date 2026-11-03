@@ -124,7 +124,7 @@ func TestShopCatalogDetailsAndPermissionGate(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "catalog.json"), []byte(catalog), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	s2 := newShopState(dir)
+	s2 := newShopStateWith(dir, s.shop.store)
 	if _, ok := s2.Catalog["0f9f0c0ffee00010"]; ok {
 		t.Error("an entry without a recorded distribution permission was listed")
 	}
@@ -154,7 +154,7 @@ func TestAcquireIsIdempotentAndDurable(t *testing.T) {
 	}
 
 	// Restart: a fresh server over the same directory keeps the entitlement and catalog.
-	s2 := &server{key: s.key, idKid: s.idKid, shop: newShopState(s.shop.dir),
+	s2 := &server{key: s.key, idKid: s.idKid, shop: newShopStateWith(s.shop.dir, s.shop.store),
 		core: s.core, penne: s.penne}
 	rec := shopReq(s2, "GET", "/ashigaru/api/v1/ownership", tok, "")
 	ent := decodeBody(t, rec)["entitlements"].([]any)
@@ -331,7 +331,7 @@ func TestTaskLifecycle(t *testing.T) {
 	_ = create() // the canceled task no longer blocks a fresh one
 
 	// Restart keeps the task history.
-	s2 := &server{key: s.key, idKid: s.idKid, shop: newShopState(s.shop.dir),
+	s2 := &server{key: s.key, idKid: s.idKid, shop: newShopStateWith(s.shop.dir, s.shop.store),
 		core: s.core, penne: s.penne}
 	tasks := s2.shop.tasksFor(testNAID)
 	if len(tasks) != 2 {

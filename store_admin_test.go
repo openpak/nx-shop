@@ -224,7 +224,7 @@ func TestStoreAdminTitleLifecycle(t *testing.T) {
 	}
 
 	// Everything survives a restart: state and catalog agree.
-	again := newShopState(s.shop.dir)
+	again := newShopStateWith(s.shop.dir, s.shop.store)
 	if tt := again.adminGet(adminTID); tt == nil || tt.Unpublished || tt.Patch == nil || len(tt.Content) != 2 {
 		t.Fatalf("after restart: %+v", tt)
 	}
@@ -433,7 +433,7 @@ func TestStoreAdminFirmwareBlocklist(t *testing.T) {
 		}
 	}
 	// Persisted, and bvc answers from it.
-	s2 := &server{shop: newShopState(s.shop.dir)}
+	s2 := &server{shop: newShopStateWith(s.shop.dir, s.shop.store)}
 	if rec := adminDo(t, s2, "GET", path, nil, ""); len(adminJSON(t, rec)["versions"].([]any)) != 2 {
 		t.Errorf("after restart = %s", rec.Body.String())
 	}

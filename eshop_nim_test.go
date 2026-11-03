@@ -553,7 +553,7 @@ func TestDigitalBundleRedemptionGrantsRights(t *testing.T) {
 	}
 
 	// A restart keeps the redemption.
-	s2 := &server{key: s.key, idKid: s.idKid, core: s.core, penne: s.penne, shop: newShopState(s.shop.dir)}
+	s2 := &server{key: s.key, idKid: s.idKid, core: s.core, penne: s.penne, shop: newShopStateWith(s.shop.dir, s.shop.store)}
 	withBundle(t, s2)
 	if st, _ := bundleState(t, s2); !st {
 		t.Error("the redemption did not survive a restart")

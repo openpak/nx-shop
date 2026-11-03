@@ -167,7 +167,7 @@ func main() {
 	}
 	shopDir := getenv("NX_SHOP_DIR", getenv("NX_DATA", "/data")+"/shop")
 	s := &server{
-		shop:  newShopState(shopDir),
+		shop:  openShopState(shopDir, os.Getenv("NX_SHOP_DATABASE_URL")),
 		key:   key,
 		idKid: getenv("BAAS_KID", "openpak-baas-key-1"),
 		core:  core,
