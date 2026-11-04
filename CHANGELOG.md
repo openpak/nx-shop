@@ -1,5 +1,11 @@
 # Changelog -- nx-shop
 
+## v0.3.0 -- 2026-11-04
+
+- Account erasure (card #120): `DELETE /internal/accounts/{account_id}/data` with `Authorization: Bearer $ACCOUNT_ERASE_KEY` on the internal listener (`NX_API_ADDR`, default `:20070`, container network; console hosts never reach it). Unset key = 503, bad key = 401, non-UUID = 400. Reply `{"service":"nx-shop","rows":N}`, one `account erased` log line.
+- The OpenPak account is mapped to its Nintendo Account id (and BAAS user id) through nx-baas's existing identity API (read-only, `NX_CORE_URL`). Erased: entitlements (the library and purchases), download tasks, beach device links, bundle redemptions. The state document is written before memory changes, so a failed write deletes nothing and the call can be repeated. An account with no Switch identity is 0 rows.
+- Kept: per-title download statistics (aggregate counters, no account), the catalog, the firmware blocklist. No wishlist is stored here.
+
 ## v0.2.8 -- 2026-11-03
 
 - Release workflow pushes the image with `GHCR_TOKEN` like the other nx-* repos (the repo token was denied `read_package`, so v0.2.6 and v0.2.7 never published). No code change from v0.2.7.

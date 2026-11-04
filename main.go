@@ -144,6 +144,7 @@ func (s *server) serve(w http.ResponseWriter, r *http.Request) {
 func (s *server) internalAPI() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/internal/store/", s.storeAdmin)
+	mux.HandleFunc("DELETE /internal/accounts/{account_id}/data", s.eraseHandler)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, map[string]any{"status": "ok", "service": "nx-shop"})
 	})

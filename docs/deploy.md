@@ -46,3 +46,7 @@ and `penneShopAccounts` moved to `ident.go`; `/me/avatar` and the admin account 
 the core. A hunk touching those needs porting by hand.
 
 The split itself (internal API, cut-over and rollback runbook) is in nx-baas `docs/service-split.md`.
+
+## Account erasure (card #120)
+
+`DELETE http://openpak-nx-shop:20070/internal/accounts/{account_id}/data`, `Authorization: Bearer <ACCOUNT_ERASE_KEY>` (shared key in the env file; unset = 503). Needs nx-baas reachable (`NX_CORE_URL`) to map the account to its Nintendo Account id; call it before the core finalises the deletion (nx-baas drops that mapping on `account_deleted`). Removes entitlements, download tasks, device links and bundle redemptions of that account from `shop_state`; keeps aggregate title statistics and the catalog. Idempotent.
