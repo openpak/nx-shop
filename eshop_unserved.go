@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -84,10 +85,22 @@ func (s *server) pearljam(w http.ResponseWriter, r *http.Request, body []byte) {
 			"message": "pearljam " + endpoint + " needs a valid device token and account token"}})
 		return
 	}
+	// A game's list of consumable products for sale on the eShop (Don't Starve Together asks for BOLTPACKS0000001 when
+	// it opens the main menu and again before its in-game Shop). OpenPak sells nothing for money: the honest answer is
+	// an empty list. Without "consumable_items" the game logs "Error parsing JSON while receiving product list" and its
+	// Shop screen stays on "Loading..." (card openpak/prds#141; shape from the game's parser, nso 0x277310).
+	if endpoint == "civil" && r.Method == http.MethodGet && consumableItemsPath.MatchString(p) {
+		log.Printf("[shop] pearljam civil GET %s app=%s -> 200 empty consumable list (nothing is sold for money)", p, r.Header.Get("X-Nintendo-Application-Id"))
+		writeJSON(w, 200, map[string]any{"inc_tax_message": "", "length": 0, "total": 0, "consumable_items": []any{}})
+		return
+	}
 	log.Printf("[shop] pearljam %s %s %s app=%s -> 200 {} (unverified: NIM passes the body to its caller unread)",
 		endpoint, r.Method, p, r.Header.Get("X-Nintendo-Application-Id"))
 	writeJSON(w, 200, map[string]any{})
 }
+
+// consumableItemsPath is "/civil/v1/consumables/<consumable id>/items".
+var consumableItemsPath = regexp.MustCompile(`^/civil/v1/consumables/[A-Za-z0-9_-]+/items$`)
 
 // keepPearljamRequest writes one pearljam request, headers and body, to
 // $NX_DATA/pearljam/ so the first console run can settle the contract.
@@ -101,6 +114,11 @@ func keepPearljamRequest(endpoint string, r *http.Request, body []byte) {
 	fmt.Fprintf(&b, "%s %s%s", r.Method, hostOf(r), r.URL.RequestURI())
 	b.WriteString("\n")
 	for k, v := range r.Header {
+		// The request is kept to settle the contract, not the credentials: tokens never reach the disk.
+		if lk := strings.ToLower(k); strings.Contains(lk, "authorization") || strings.Contains(lk, "token") || strings.Contains(lk, "cookie") {
+			fmt.Fprintf(&b, "%s: <redacted>\n", k)
+			continue
+		}
 		fmt.Fprintf(&b, "%s: %s\n", k, strings.Join(v, ", "))
 	}
 	b.WriteString("\n")

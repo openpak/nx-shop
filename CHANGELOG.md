@@ -1,5 +1,9 @@
 # Changelog -- nx-shop
 
+## v0.3.1 -- 2026-11-05
+
+- Card #141: pearljam `GET /civil/v1/consumables/<id>/items` answers an empty, well-formed list (`consumable_items: []`, `length`/`total` 0, `inc_tax_message`) instead of `{}`. Don't Starve Together asks for its currency-pack list (`BOLTPACKS0000001`) at the main menu and before its in-game Shop; without `consumable_items` it logs "Error parsing JSON while receiving product list" and the Shop stays on "Loading...". OpenPak sells nothing for money, so the list is empty. Kept pearljam request dumps no longer contain tokens, cookies or Authorization values.
+
 ## v0.3.0 -- 2026-11-04
 
 - Account erasure (card #120): `DELETE /internal/accounts/{account_id}/data` with `Authorization: Bearer $ACCOUNT_ERASE_KEY` on the internal listener (`NX_API_ADDR`, default `:20070`, container network; console hosts never reach it). Unset key = 503, bad key = 401, non-UUID = 400. Reply `{"service":"nx-shop","rows":N}`, one `account erased` log line.

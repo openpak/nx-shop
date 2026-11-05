@@ -778,3 +778,39 @@ func TestEdgeTokenIssuedOnEveryRightsHost(t *testing.T) {
 		}
 	}
 }
+
+// A game's list of consumables for sale on the eShop (Don't Starve Together asks at its main menu) is empty and
+// well-formed: OpenPak sells nothing for money, and without consumable_items the game's Shop stays on "Loading...".
+// The request is kept without its credentials.
+func TestPearljamConsumableListIsEmptyAndKeepsNoTokens(t *testing.T) {
+	data := t.TempDir()
+	t.Setenv("NX_DATA", data)
+	s := shopServerFor(t)
+	const host = "pearljam.hac.lp1.eshop.nintendo.net"
+	dev := "Bearer " + deviceTokenFor(s, testDevice)
+	nsa := "Bearer " + nsaIDTokenFor(s, testCore(s).userByPID(7).ID)
+	req := httptest.NewRequest("GET", "https://"+host+"/civil/v1/consumables/BOLTPACKS0000001/items?country=IE&lang=en-GB", nil)
+	req.Host = host
+	req.Header.Set("X-DeviceAuthorization", dev)
+	req.Header.Set("Authorization", nsa)
+	req.Header.Set("X-Nintendo-Application-Id", "010090100e334000")
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, req)
+	var m map[string]any
+	json.Unmarshal(w.Body.Bytes(), &m)
+	items, ok := m["consumable_items"].([]any)
+	if w.Code != 200 || !ok || len(items) != 0 || m["total"] != float64(0) || m["length"] != float64(0) {
+		t.Fatalf("consumables = %d %s", w.Code, w.Body.String())
+	}
+	kept, _ := os.ReadDir(filepath.Join(data, "pearljam"))
+	if len(kept) != 1 {
+		t.Fatalf("kept %d dumps", len(kept))
+	}
+	b, _ := os.ReadFile(filepath.Join(data, "pearljam", kept[0].Name()))
+	if strings.Contains(string(b), nsa) || strings.Contains(string(b), dev) {
+		t.Error("a token was written to the request dump")
+	}
+	if !strings.Contains(string(b), "X-Nintendo-Application-Id: 010090100e334000") {
+		t.Errorf("the application id is missing from the dump:\n%s", b)
+	}
+}
