@@ -635,16 +635,16 @@ func storePage() string {
 	return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">` +
 		`<meta name="viewport" content="width=1280,initial-scale=1,maximum-scale=1,user-scalable=no"><title>OpenPak Shop</title>` +
 		`<style>` + storeCSS + `</style></head><body>` +
-		`<nav id="side"><div class="logo"><img src="` + logoDataURI + `" alt="">OpenPak Shop</div>` +
-		navButton("highlights", "Highlights", `<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>`) +
-		navButton("cat:all", "Browse", `<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>`) +
+		`<header id="top"><div class="acct"><img id="who" class="who" alt="" hidden><span class="ph" id="whoph"></span><span class="bal" id="bal" hidden></span></div>` +
+		`<div class="store"><img src="` + logoDataURI + `" alt="">OpenPak Shop</div><button class="backbtn" id="backbtn" type="button" hidden>‹ Back</button></header>` +
+		`<nav id="side">` +
+		navButton("highlights", "Home", `<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/>`) +
 		navButton("search", "Search", `<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>`) +
+		navButton("cat:all", "Browse", `<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>`) +
 		strings.Replace(navButton("items", "Game Items", `<path d="M20 12v8H4v-8M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z"/>`), `class="nav"`, `class="nav" id="nav-items" hidden`, 1) +
 		navButton("owned", "Your Titles", `<path d="M12 20s-7.5-4.6-7.5-10A4.5 4.5 0 0 1 12 7.4 4.5 4.5 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/>`) +
 		`<button class="leave" id="close" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span>Close</button>` +
-		`</nav><section id="main"><div class="top"><button class="backbtn" id="backbtn" type="button" hidden>‹ Back</button>` +
-		`<span class="note" id="note">All titles are free</span><img id="who" class="who" alt="" hidden></div>` +
-		`<div id="banner" class="banner"></div><div id="app"><p class="empty">Loading…</p></div></section>` +
+		`</nav><section id="main"><div id="banner" class="banner"></div><div id="app"><p class="empty">Loading…</p></div></section>` +
 		`<script>` + shopBridgeJS + footerJS + shopCatsJS() + shopAppJS + `</script></body></html>`
 }
 
@@ -675,61 +675,90 @@ const storeCSS = `
 html,body{margin:0;height:100%;background:var(--paper);color:var(--ink);overflow:hidden;
 font:2.9vh/1.55 "Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
-/* The rail: four places and a way out, each a 9.4vh bar. The rail never scrolls. */
-#side{position:fixed;left:0;top:0;bottom:0;width:23vw;display:flex;flex-direction:column;padding:2vh 1.2vw 2.4vh;border-right:1px solid var(--line)}
-.logo{display:flex;align-items:center;gap:1vw;font-weight:750;letter-spacing:-.02em;font-size:3.2vh;padding:0 .8vw 2.4vh}
-.logo img{width:5.6vh;height:5.6vh}
-.nav,.leave{display:flex;align-items:center;gap:1vw;width:100%;min-height:9.4vh;margin:.5vh 0;padding:0 1vw 0 .8vw;background:none;
-border:1px solid transparent;border-radius:999px;text-align:left;font-weight:650;font-size:3vh;color:var(--ink-2)}
-.nav .ic,.leave .ic{flex:none;display:inline-flex;align-items:center;justify-content:center;width:6vh;height:6vh;border-radius:50%;background:var(--paper-2);border:1px solid var(--line)}
-.nav .ic svg,.leave .ic svg{width:3.4vh;height:3.4vh}
-.nav.on{background:var(--raised);border-color:var(--line);box-shadow:inset 0 -.6vh 0 var(--cursor),var(--shadow-sm);color:var(--ink)}
-.nav.on .ic{background:var(--accent-weak);border-color:var(--accent-line);color:var(--accent)}
+/* Faithful layout (2026-11-06): the console eShop's frame. A top bar with the account and the
+   balance (points here) and the store name; a flat left menu; a content pane of square tiles
+   with the name and the price under each, no card frames. */
+#top{position:fixed;left:0;right:0;top:0;height:9.4vh;display:flex;align-items:center;padding:0 2vw 0 1.4vw;border-bottom:1px solid var(--line);background:var(--paper)}
+.acct{display:flex;align-items:center;gap:1vw;width:20vw}
+.who,.ph{flex:none;width:6.4vh;height:6.4vh;border-radius:50%;border:2px solid var(--raised);box-shadow:0 0 0 1px var(--line-2);object-fit:cover;background:var(--accent-weak)}
+.ph{display:inline-block}
+.who:not([hidden])+.ph{display:none}
+.bal{font-size:2.5vh;font-weight:700;color:var(--ink);white-space:nowrap}
+.bal small{font-weight:500;color:var(--muted);font-size:2.1vh}
+.store{display:flex;align-items:center;gap:1vh;margin-left:3.6vw;font-weight:750;letter-spacing:-.02em;font-size:3.1vh;color:var(--ink)}
+.store img{width:5.2vh;height:5.2vh}
+#top .backbtn{margin-left:auto;min-height:6.6vh;border-radius:1.4vh;background:var(--raised)}
+.hero .s{line-height:1.3;display:block}
+.backbtn{display:inline-flex;align-items:center;padding:0 1.6vw;font-weight:650;font-size:2.7vh;color:var(--ink);border:1px solid var(--line-2);box-shadow:var(--shadow-sm)}
+.act{border-radius:1.4vh}
+.detail .acts{display:block}
+#side{position:fixed;left:0;top:9.4vh;bottom:0;width:22vw;display:flex;flex-direction:column;padding:2.4vh 1.2vw 2.4vh;border-right:1px solid var(--line)}
+.nav,.leave{display:flex;align-items:center;gap:1.1vw;width:100%;min-height:8.6vh;margin:.4vh 0;padding:0 1.1vw;background:none;
+border:1px solid transparent;border-radius:1.4vh;text-align:left;font-weight:650;font-size:2.9vh;color:var(--ink-2)}
+.nav .ic,.leave .ic{flex:none;display:inline-flex;align-items:center;justify-content:center;width:4.2vh;height:4.2vh}
+.nav .ic svg,.leave .ic svg{width:3.6vh;height:3.6vh}
+.nav.on{background:var(--raised);border-color:var(--line);box-shadow:inset .7vh 0 0 var(--accent),var(--shadow-sm);color:var(--ink)}
+.nav.on .ic{color:var(--accent)}
 .leave{margin-top:auto;color:var(--muted)}
-#main{position:fixed;left:23vw;right:0;top:0;bottom:0;overflow-y:auto;padding:0 2.6vw 5vh}
-.top{display:flex;align-items:center;gap:1.4vw;height:11vh}
-.top .note{flex:1}
-.top .backbtn{margin-right:auto}
-.top .who{margin-left:auto}
+#main{position:fixed;left:22vw;right:0;top:9.4vh;bottom:0;overflow-y:auto;padding:2.6vh 2.4vw 5vh}
 .note{color:var(--muted);font-size:2.3vh;font-weight:700}
-.who{width:7.4vh;height:7.4vh;border-radius:50%;border:2px solid var(--raised);box-shadow:0 0 0 1px var(--line-2),var(--shadow);object-fit:cover;background:var(--raised)}
-.backbtn{display:inline-flex;align-items:center;min-height:8vh;padding:0 2.2vw;border-radius:999px;font-weight:650;font-size:2.9vh;
-background:var(--raised);color:var(--ink);border:1px solid var(--line-2);box-shadow:var(--shadow-sm)}
 .banner{display:none;background:var(--bad-weak);border:1px solid var(--bad-line);color:var(--bad);border-radius:16px;padding:1.6vh 1.6vw;margin-bottom:2vh;font-size:2.4vh}
 h1{font-size:5vh;font-weight:750;letter-spacing:-.03em;line-height:1.1;margin:0}
 .head{display:flex;align-items:center;justify-content:space-between;gap:2vw;margin:0 0 2.2vh;min-height:8vh}
-/* Browse: the category row. It wraps rather than scrolls, so every choice is on screen. */
 .chips{display:flex;flex-wrap:wrap;gap:1vh .8vw;margin:0 0 2.6vh}
-.chip,.sort{display:inline-flex;align-items:center;gap:.7vw;min-height:8vh;padding:0 1.6vw;border-radius:999px;font-size:2.6vh;font-weight:600;
+.chip,.sort{display:inline-flex;align-items:center;gap:.7vw;min-height:7.4vh;padding:0 1.6vw;border-radius:1.4vh;font-size:2.5vh;font-weight:600;
 border:1px solid var(--line-2);background:var(--raised);color:var(--ink-2);white-space:nowrap}
 .chip.on{background:var(--accent-weak);border-color:var(--accent-line);color:var(--ink);box-shadow:inset 0 -.5vh 0 var(--cursor)}
 .sort{flex:none}
 .sort b{font-weight:500;color:var(--muted)}
-/* Titles are square tiles like the HOME menu's: icon on top, name under it, at most two lines. */
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2.4vh 1.1vw}
-/* A perfect square: four columns share 68.5vw, so one is 17.125vw tall too (aspect-ratio where the browser has it, this height where it does not). */
-.card{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:17.125vw;overflow:hidden;padding:1vh .6vw;background:var(--raised);
-border:1px solid var(--line);border-radius:20px;text-align:center;box-shadow:var(--shadow-sm)}
-@supports (aspect-ratio:1/1){.card{height:auto;aspect-ratio:1/1}}
-.card img{display:block;width:15vh;height:15vh;border-radius:22%;background:var(--paper-2);box-shadow:var(--shadow)}
-.card .n{margin-top:1.4vh;font-size:2.5vh;font-weight:650;letter-spacing:-.01em;line-height:1.25;width:100%;
+/* The home carousel: one wide slide, dots under it. */
+.hero{position:relative;display:flex;align-items:center;justify-content:space-between;width:100%;height:27vh;padding:0 2.4vw;overflow:hidden;text-align:left;
+background:var(--accent);color:var(--on-accent);border:1px solid var(--accent);border-radius:2vh}
+.hero .t{max-width:50%}
+.hero .k{font-size:2.2vh;font-weight:650;opacity:.85;text-transform:uppercase;letter-spacing:.08em}
+.hero .h{font-size:4.6vh;font-weight:750;letter-spacing:-.03em;line-height:1.1;margin:.6vh 0 1vh}
+.hero .s{font-size:2.5vh;opacity:.92}
+.hero .pics{display:flex;gap:1.2vw;align-items:center}
+.hero .pics img{width:18vh;height:18vh;border-radius:2vh;object-fit:cover;background:var(--raised);box-shadow:0 .6vh 1.6vh rgba(0,0,0,.25)}
+.hero .pics img:first-child{width:12vh;height:12vh;border-radius:22%}
+.dots{display:flex;justify-content:center;gap:1vh;margin:1.4vh 0 .6vh}
+.dots i{width:1.2vh;height:1.2vh;border-radius:50%;background:var(--line-2)}.dots i.on{background:var(--accent)}
+.rowh{display:flex;align-items:baseline;justify-content:space-between;margin:2.2vh 0 1.4vh}
+.rowh h2{margin:0;font-size:3.2vh}
+.rowh .more{font-size:2.3vh;font-weight:650;color:var(--accent)}
+/* Tiles: the art is the tile; name and price sit under it, like the console's own shelves. */
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2.6vh 1.1vw;align-items:start}
+.card{position:relative;display:flex;flex-direction:column;align-items:stretch;width:100%;padding:0;background:none;border:0;border-radius:2vh;text-align:left;box-shadow:none;overflow:visible}
+.card img,.card .gift{display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:cover;border-radius:1.8vh;background:var(--paper-2);border:1px solid var(--line)}
+.card .n{margin-top:1vh;padding:0 .3vw;font-size:2.4vh;font-weight:650;letter-spacing:-.01em;line-height:1.25;
 overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.card .c{display:block;margin-top:.3vh;font-size:2vh;color:var(--muted)}
-.badge{position:absolute;top:1.4vh;right:1.2vh;display:inline-flex;align-items:center;gap:.4vw;padding:.3vh .9vw;border-radius:999px;font-size:2vh;font-weight:650;
-background:var(--accent-weak);border:1px solid var(--accent-line);color:var(--accent)}
-.badge::before{content:"";width:.9vh;height:.9vh;border-radius:50%;background:currentColor}
-.badge.own{background:var(--ok-weak);border-color:var(--ok-line);color:var(--ok)}
-.badge.upd{background:var(--paper-2);border-color:var(--line-2);color:var(--ink-2)}
+.card .c,.card .pts{display:block;margin-top:.3vh;padding:0 .3vw;font-size:2.1vh;font-weight:650;color:var(--ink-2)}
+.card .pts{color:var(--accent)}
+.card .c{font-weight:500;color:var(--muted)}
+.badge{position:absolute;top:1vh;left:1vh;display:inline-flex;align-items:center;gap:.4vw;padding:.3vh .9vw;border-radius:.9vh;font-size:1.9vh;font-weight:700;
+background:var(--accent);border:1px solid var(--accent);color:var(--on-accent)}
+.badge.own{background:var(--ok);border-color:var(--ok)}
+.badge.upd{background:var(--ink-2);border-color:var(--ink-2)}
+.badge.lock{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.card.locked img.pic{opacity:.55}
+/* Detail: art on the left, the name, the price and the one button on the right. */
+.detail{--ring-gap:var(--paper);display:grid;grid-template-columns:36vh 1fr;gap:3vw;align-items:start;padding:0}
+.detail .art{display:block;height:auto}
+.detail .art img,.detail .art img.pic.big,.detail .art .gift{display:block;width:36vh;height:36vh;border-radius:2.4vh;object-fit:cover;background:var(--paper-2);border:1px solid var(--line)}
+.price{font-size:4vh;font-weight:750;color:var(--accent);margin:1vh 0 2vh}
+.price small{font-size:2.3vh;font-weight:500;color:var(--muted);margin-left:1vw}
+.act.off{background:var(--sunk);border-color:var(--line-2);color:var(--ink-2)}
+.sub{font-size:2.3vh;color:var(--muted);margin:1.4vh 0 0}
+.srow{display:flex;gap:1vw;margin-bottom:1.6vh}.srow .search{flex:1;margin:0}
+.srow .act{min-height:9.4vh}
+.fl{display:flex;gap:1vw;margin:0 0 2.4vh;flex-wrap:wrap}
 /* Detail: the whole decision fits above the fold -- icon, name, three facts, the button. The
    rest (about, what's new, screenshots, details) scrolls underneath. */
-.detail{--ring-gap:var(--raised);display:grid;grid-template-columns:34vh 1fr;gap:2.6vw;align-items:center;background:var(--raised);border:1px solid var(--line);border-radius:20px;padding:3vh 2vw;box-shadow:var(--shadow-sm)}
-.detail .art{display:flex;align-items:center;justify-content:center;height:34vh;border-radius:16px;background:var(--paper-2)}
-.detail .art img{width:24vh;height:24vh;border-radius:22%;box-shadow:var(--shadow)}
 .pub{color:var(--muted);margin:.6vh 0 1.8vh}
 .facts{display:flex;flex-wrap:wrap;gap:1vh .7vw;margin:0 0 2.8vh}
 .facts span{padding:.6vh 1.2vw;border-radius:999px;font-size:2.3vh;font-weight:600;background:var(--paper-2);border:1px solid var(--line);color:var(--ink-2)}
 .acts{display:flex;flex-wrap:wrap;gap:1.4vh 1vw}
-.act{display:inline-flex;align-items:center;justify-content:center;min-height:9.4vh;padding:0 3vw;border-radius:999px;font-weight:650;font-size:3.1vh;
+.act{display:inline-flex;align-items:center;justify-content:center;min-height:9.4vh;padding:0 3vw;border-radius:1.4vh;font-weight:650;font-size:3.1vh;
 color:var(--on-accent);border:1px solid var(--accent);background:var(--accent)}
 .act.plain{background:var(--raised);color:var(--ink);border-color:var(--line-2);box-shadow:var(--shadow-sm)}
 .desc{margin:0 0 2.4vh;font-size:2.6vh;color:var(--ink-2);white-space:pre-line;max-width:60em}
@@ -753,16 +782,14 @@ background:var(--raised);color:var(--ink)}
 .chip:hover,.chip:focus,.backbtn:hover,.backbtn:focus{outline:none;box-shadow:0 0 0 3px var(--ring-gap,var(--paper)),0 0 0 7px var(--cursor)}
 .nav:focus,.leave:focus,.sort:focus,.chip:focus,.backbtn:focus,.act:focus{position:relative;z-index:1}
 .search:focus{border-color:var(--cursor)}
-.card.item .gift{display:flex;align-items:center;justify-content:center;width:12vh;height:12vh;border-radius:22%;background:var(--accent-weak);border:1px solid var(--accent-line);color:var(--accent);box-shadow:var(--shadow)}
-.card.item .gift svg{width:6.5vh;height:6.5vh}
+.card .gift{display:flex!important;align-items:center;justify-content:center;background:var(--accent-weak)!important;color:var(--accent);border-color:var(--accent-line)!important}
+.card .gift svg{width:40%;height:40%}
 .lead{margin:0 0 2.4vh!important}
-.gh{display:flex;align-items:center;gap:1.4vh}.gicon{width:5vh;height:5vh;border-radius:22%;object-fit:cover;box-shadow:var(--shadow)}
-.card.item img.pic{display:block;width:62%;height:auto;aspect-ratio:1/1;border-radius:22%;object-fit:cover;background:var(--paper-2);box-shadow:var(--shadow)}
-.detail .art img.pic.big{width:24vh;height:24vh;border-radius:22%;object-fit:cover;box-shadow:var(--shadow)}
-.card .pts{display:block;margin-top:.3vh;font-size:2.1vh;font-weight:650;color:var(--accent)}
-.detail .art .gift{display:flex;align-items:center;justify-content:center;width:24vh;height:24vh;border-radius:22%;background:var(--accent-weak);border:1px solid var(--accent-line);color:var(--accent);box-shadow:var(--shadow)}
-.detail .art .gift svg{width:12vh;height:12vh}
-.card:focus{-webkit-transform:scale(1.03);transform:scale(1.03);z-index:1}
+.gh{display:flex;align-items:center;gap:1.4vh}.gicon{width:5vh;height:5vh;border-radius:22%;object-fit:cover}
+.detail .art .gift{display:flex;align-items:center;justify-content:center;background:var(--accent-weak);color:var(--accent)}.detail .art .gift svg{width:40%;height:40%}
+.card:focus{z-index:1}
+.card:hover img,.card:focus img,.card:hover .gift,.card:focus .gift,.hero:hover,.hero:focus{outline:none;box-shadow:0 0 0 3px var(--paper),0 0 0 7px var(--cursor)}
+.card:hover,.card:focus{box-shadow:none!important;animation:none!important}
 @keyframes breathe{50%{box-shadow:0 0 0 3px var(--ring-gap,var(--paper)),0 0 0 7px var(--cursor-2)}}
 @media (prefers-reduced-motion:no-preference){.nav:hover,.nav:focus,.leave:hover,.leave:focus,.card:hover,.card:focus,.act:hover,.act:focus,.sort:hover,.sort:focus,
 .chip:hover,.chip:focus,.backbtn:hover,.backbtn:focus{animation:breathe 1.6s ease-in-out infinite}}
@@ -860,7 +887,7 @@ function load(){
   catalog=r.body.titles||[];return catalog;});
 }
 // The top bar: Back where a step can be undone (touch has no B button), the note otherwise.
-function chrome(){$('backbtn').hidden=!back;$('note').hidden=!!back||!!(view&&view.v==='items'||view&&view.gi);}
+function chrome(){$('backbtn').hidden=!back;}
 function select(v){
  if(v.indexOf('cat:')===0){v='cat:all';}
  var b=document.querySelectorAll('.nav');
@@ -871,7 +898,7 @@ var CATNAME={game:'Games',emulator:'Emulators',tool:'Tools',advanced:'Advanced',
 function card(t){
  var badge=t.ownership==='owned'?'<span class="badge own">Owned</span>':isNew(t)?'<span class="badge">New</span>':isUpdated(t)?'<span class="badge upd">Updated</span>':'';
  return '<button class="card" data-tid="'+esc(t.title_id)+'">'+badge+'<img src="'+esc(t.icon)+'" alt="" loading="lazy" decoding="async">'+
-  '<span class="n">'+esc(t.name)+'</span><span class="c">'+esc(CATNAME[t.category]||'Misc')+'</span></button>';
+  '<span class="n">'+esc(t.name)+'</span><span class="c">Free</span></button>';
 }
 function wire(root){
  var b=(root||app).querySelectorAll('.card:not([data-w])');
@@ -933,9 +960,7 @@ function section(v,focusFirst){
    if(c==='all'){return grid(ts,'All Apps','The shop is empty for now.','name',v);}
    return grid(ts.filter(function(t){return c==='misc'?(!named[t.category]||t.category==='misc'):t.category===c;}),named[c],'No titles in this category yet.','name',v);
   }
-  ts.sort(sorts.updated[1]);
-  grid(ts.slice(0,PAGE),'New and updated','The shop is empty for now.','updated');
-  if(focusFirst){var c=app.querySelector('.card');if(c){c.focus();}}
+  home();
  }).catch(function(e){show('The shop could not be reached ('+e.message+').');app.innerHTML='';});
 }
 
@@ -952,6 +977,7 @@ function loadItems(force){
   items=r.status===200?r.body:{enabled:false,items:[]};
   pointsNow=items.balance;
   $('nav-items').hidden=!items.enabled;
+  var b=$('bal');if(items.enabled&&items.linked){b.innerHTML=items.balance+' <small>points</small>';b.hidden=false;}
   return items;});
 }
 function itemArt(it,big){
@@ -960,8 +986,9 @@ function itemArt(it,big){
 }
 var GIFTBOX='<span class="gift">'+GIFT+'</span>';
 function itemCard(it,i){
- var badge=it.owned?'<span class="badge own">Owned</span>':(it.locked&&it.locked.length?'<span class="badge">Needs '+(it.locked.length>1?it.locked.length+' characters':esc(needs(it)))+'</span>':'');
- return '<button class="card item" data-i="'+i+'">'+badge+itemArt(it)+'<span class="n">'+esc(it.name)+'</span>'+
+ var lk=!it.owned&&it.locked&&it.locked.length;
+ var badge=it.owned?'<span class="badge own">Owned</span>':(it.locked&&it.locked.length?'<span class="badge lock">Needs '+(it.locked.length>1?it.locked.length+' characters':esc(needs(it)))+'</span>':'');
+ return '<button class="card item'+(lk?' locked':'')+'" data-i="'+i+'">'+badge+itemArt(it)+'<span class="n">'+esc(it.name)+'</span>'+
   '<span class="pts">'+(it.owned?'&nbsp;':it.price+' points')+'</span></button>';
 }
 function gameShelves(list){
@@ -984,12 +1011,15 @@ function itemsView(){
 function itemDetail(i){
  var it=items.items[i]; hide();
  view=function(){itemDetail(i);}; view.gi=1; back=function(){section('items',true);}; chrome();
+ var lockedNow=!it.owned&&it.locked&&it.locked.length;
  var act=it.owned?'<p class="msg">You already have this item.</p>':
   (!items.linked?'<p class="msg">Link this console to your OpenPak account to use points.</p>':
-  (it.locked&&it.locked.length)?'<p class="msg">The game needs you to unlock '+esc(needs(it))+' first. Get that character\'s chest, then come back.</p>':
-  '<button class="act" id="unlock">Unlock for '+it.price+' points</button>');
+  lockedNow?'<button class="act off" id="needs" type="button">Needs '+esc(needs(it))+'</button><p class="sub">The game needs you to unlock '+esc(needs(it))+' first. Get that character\'s chest, then come back.</p>':
+  '<button class="act" id="unlock">Unlock for '+it.price+' points</button><p class="sub">You have '+items.balance+' points.</p>');
  app.innerHTML='<div class="detail"><div class="art">'+itemArt(it,1)+'</div><div><h1>'+esc(it.name)+'</h1><p class="pub">'+esc(gname(it.game))+'</p>'+
-  '<div class="facts"><span>'+esc(it.slot||'item')+'</span><span>'+it.price+' points</span><span>You have '+items.balance+' points</span></div><div class="acts">'+act+'</div></div></div>';
+  '<div class="price">'+(it.owned?'Owned':it.price+' points')+'</div><div class="acts">'+act+'</div>'+
+  '<h2>Details</h2><div class="kv"><b>Game</b><span>'+esc(gname(it.game))+'</span><b>Type</b><span>'+esc(it.slot||'item')+'</span><b>Cost</b><span>'+it.price+' points</span></div></div></div>';
+ var nd=$('needs'); if(nd){nd.focus();}
  var u=$('unlock'); if(u){u.focus();u.addEventListener('click',function(){unlock(i);});}
 }
 function unlock(i){
@@ -1003,18 +1033,57 @@ function unlock(i){
   loadItems(true).then(function(){itemDetail(i);show(m);});
  }).catch(function(){itemDetail(i);show('The points ledger could not be reached.');});
 }
+var SEARCHQ='', SEARCHCAT='all', SEARCHPRICE='any';
+var PRICES={any:'Any',free:'Free',points:'Points'};
 function search(){
- app.innerHTML='<input class="search" id="q" placeholder="Search the OpenPak Shop" autocomplete="off"><div id="res"></div>';
- var q=$('q');
- function run(){load().then(function(ts){var s=q.value.trim().toLowerCase();
-  var hit=s?ts.filter(function(t){return (t.name+' '+(t.publisher||'')).toLowerCase().indexOf(s)>=0;}):[];
-  $('res').innerHTML=s?(hit.length?'<div class="grid"></div>':'<p class="empty">No titles match “'+esc(q.value)+'”.</p>'):'';
-  if(hit.length){pager($('res').querySelector('.grid'),hit);}});}
- q.addEventListener('input',run);q.addEventListener('change',run);
+ app.innerHTML='<div class="srow"><input class="search" id="q" placeholder="Enter keyword" autocomplete="off"><button class="act" id="go" type="button">Search</button></div>'+
+  '<div class="fl"><button class="sort" id="fcat" type="button"><b>Category</b> <span id="fcatv"></span></button><button class="sort" id="fpts" type="button"><b>Price</b> <span id="fptsv"></span></button></div><div id="res"></div>';
+ var q=$('q'); q.value=SEARCHQ;
+ function lab(){var c=CATS.filter(function(x){return x.key===SEARCHCAT;})[0];$('fcatv').textContent=c?c.label:'All';}
+ lab();
+ function plab(){$('fptsv').textContent=PRICES[SEARCHPRICE];}
+ plab();
+ function run(){SEARCHQ=q.value;Promise.all([load(),loadItems().catch(function(){return {items:[]};})]).then(function(r){var ts=r[0],its=(r[1].items||[]);var s=q.value.trim().toLowerCase();
+  var hit=s&&SEARCHPRICE!=='points'?ts.filter(function(t){return (t.name+' '+(t.publisher||'')).toLowerCase().indexOf(s)>=0&&(SEARCHCAT==='all'||t.category===SEARCHCAT);}):[];
+  var ih=s&&SEARCHCAT==='all'&&SEARCHPRICE!=='free'?its.map(function(it,i){return {it:it,i:i};}).filter(function(x){return (x.it.name+' '+gname(x.it.game)).toLowerCase().indexOf(s)>=0;}):[];
+  $('res').innerHTML=s?((hit.length?'<div class="rowh"><h2>Titles</h2></div><div class="grid" id="tg"></div>':'')+(ih.length?'<div class="rowh"><h2>Game Items</h2></div><div class="grid" id="ig">'+ih.slice(0,10).map(function(x){return itemCard(x.it,x.i);}).join('')+'</div>':'')+(hit.length||ih.length?'':'<p class="empty">No titles match “'+esc(q.value)+'”.</p>')):'';
+  if(hit.length){pager($('tg'),hit);}
+  var c=$('res').querySelectorAll('.card.item');for(var j=0;j<c.length;j++){c[j].addEventListener('click',function(){itemDetail(+this.getAttribute('data-i'));});}});}
+ q.addEventListener('input',run);q.addEventListener('change',run);$('go').addEventListener('click',run);
+ $('fpts').addEventListener('click',function(){var k=Object.keys(PRICES);SEARCHPRICE=k[(k.indexOf(SEARCHPRICE)+1)%k.length];plab();run();$('fpts').focus();});
+ $('fcat').addEventListener('click',function(){var k=CATS.map(function(c){return c.key;});SEARCHCAT=k[(k.indexOf(SEARCHCAT)+1)%k.length];lab();run();$('fcat').focus();});
  // The console opens its keyboard when the player focuses the box, not when a script does, so
  // the box is not focused for them; A on it re-focuses inside the key press, which does.
  function kb(){q.blur();setTimeout(function(){q.focus();q.click();},0);}
  q.addEventListener('keydown',function(e){if(e.key==='Enter'||e.keyCode===13){e.preventDefault();kb();}});
+ if(SEARCHQ){run();}
+}
+// Home: the carousel, then rows of tiles (the console eShop's Discover page).
+var slide=0, slideTimer=null;
+function home(){
+ Promise.all([load(),loadItems().catch(function(){return {enabled:false,items:[]};})]).then(function(r){
+  var ts=r[0].slice(),d=r[1],its=d.enabled?d.items:[];
+  ts.sort(sorts.updated[1]);
+  var slides=[];
+  if(its.length){var pics=its.filter(function(x){return x.art;}).slice(0,3);
+   slides.push({k:'Game Items',h:'Unlock extras with Rewards points',s:'Chests and cosmetics for '+esc(gname(its[0].game))+' and more.',go:'items',
+    pics:'<img src="/ashigaru/api/v1/game-items/icon?game='+encodeURIComponent(its[0].game)+'" alt="">'+pics.map(function(x){return '<img src="/ashigaru/api/v1/game-items/'+encodeURIComponent(x.item)+'/art" alt="">';}).join('')});}
+  if(ts.length){slides.push({k:'New and updated',h:esc(ts[0].name),s:esc(ts[0].publisher||'Free homebrew'),tid:ts[0].title_id,pics:'<img src="'+esc(ts[0].icon)+'" alt="">'});}
+  if(ts.length>1){slides.push({k:'Free to get',h:esc(ts[1].name),s:esc(ts[1].publisher||'Free homebrew'),tid:ts[1].title_id,pics:'<img src="'+esc(ts[1].icon)+'" alt="">'});}
+  function hero(){var s=slides[slide%slides.length];
+   return '<button class="hero" id="hero"><span class="t"><span class="k">'+s.k+'</span><div class="h">'+s.h+'</div><span class="s">'+s.s+'</span></span><span class="pics">'+s.pics+'</span></button>'+
+    '<div class="dots">'+slides.map(function(_,i){return '<i class="'+(i===slide%slides.length?'on':'')+'"></i>';}).join('')+'</div>';}
+  var h=slides.length?'<div id="car">'+hero()+'</div>':'';
+  var row1='<div class="rowh"><h2>New and updated</h2><span class="more">Browse all</span></div><div class="grid" id="hg"></div>';
+  var row2=its.length?'<div class="rowh"><h2>Game Items</h2><span class="more">See all</span></div><div class="grid" id="hi">'+its.filter(function(x){return x.art;}).slice(0,5).map(function(x){return itemCard(x,its.indexOf(x));}).join('')+'</div>':'';
+  app.innerHTML=h+row1+row2;
+  var g=$('hg');if(g){g.innerHTML=ts.slice(0,5).map(card).join('');wire(g);}
+  var c=app.querySelectorAll('#hi .card.item');for(var j=0;j<c.length;j++){c[j].addEventListener('click',function(){itemDetail(+this.getAttribute('data-i'));});}
+  function bind(){var b=$('hero');if(!b){return;}b.addEventListener('click',function(){var s=slides[slide%slides.length];if(s.go){section(s.go,true);}else{detail(s.tid);}});}
+  bind();
+  if(slideTimer){clearInterval(slideTimer);}
+  if(slides.length>1){slideTimer=setInterval(function(){if(!$('car')){clearInterval(slideTimer);return;}slide++;$('car').innerHTML=hero();bind();},6000);}
+ }).catch(function(e){show('The shop could not be reached ('+e.message+').');app.innerHTML='';});
 }
 function info(h,body){
  app.innerHTML='<div class="head"><h1>'+esc(h)+'</h1></div><p class="msg">'+esc(body)+'</p>';
@@ -1035,7 +1104,7 @@ function detail(tid){
   var shots=(t.screenshots||[]).map(function(u){return '<img src="'+esc(u)+'" alt="">';}).join('');
   var facts='<span>'+esc(CATNAME[t.category]||'Misc')+'</span><span>Version '+esc(t.version_label||t.version)+'</span><span>'+human(t.size_bytes||0)+'</span>';
   app.innerHTML='<div class="detail">'+art(t)+'<div><h1>'+esc(t.name)+'</h1><p class="pub">'+esc(t.publisher||'')+'</p>'+
-   '<div class="facts">'+facts+'</div><div class="acts">'+act+'</div></div></div>'+
+   '<div class="price">Free</div><div class="facts">'+facts+'</div><div class="acts">'+act+'</div></div></div>'+
    (t.description?'<h2>About</h2><p class="desc">'+esc(t.description)+'</p>':'')+
    (t.changelog?'<h2>What\'s new</h2><p class="desc notes">'+esc(t.changelog)+'</p>':'')+
    (shots?'<div class="shots">'+shots+'</div>':'')+

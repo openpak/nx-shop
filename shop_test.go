@@ -374,3 +374,17 @@ func TestDownloadAgainReplacesAStaleTask(t *testing.T) {
 		t.Fatalf("stale task not replaced: old=%s/%s new=%s/%s", first.ID, first.State, fresh.ID, fresh.State)
 	}
 }
+
+// The console-eShop layout (card #152): the top bar with the points balance, the flat menu
+// with Home first, and the Search page's working Price filter.
+func TestStorePageFaithfulLayout(t *testing.T) {
+	p := storePage()
+	for _, want := range []string{`id="top"`, `id="bal"`, `data-view="highlights">`, `id="fpts"`, `SEARCHPRICE`, `.hero`} {
+		if !strings.Contains(p, want) {
+			t.Errorf("store page lacks %q", want)
+		}
+	}
+	if strings.Contains(p, "Highlights") {
+		t.Error("the Home entry is still called Highlights")
+	}
+}

@@ -1,5 +1,9 @@
 # Changelog -- nx-shop
 
+## v0.5.0 -- 2026-11-06
+
+- Card #152 (owner decision 2026-11-06): the on-console shop is laid out like the Switch eShop, in OpenPak colours. A top bar with the account icon, the Rewards points balance (once the console is linked) and the store name; a flat left menu (Home, Search, Browse, Game Items, Your Titles, Close); a Home page with a banner carousel and shelves of square tiles; frameless tiles with the name and price under the art; a detail page with art on the left, price and one button on the right (a locked chest shows a disabled "Needs <character>" button); Search with a keyword field, Search button and Category and Price filters. Light and dark themes. Points only, no money wording.
+
 ## v0.4.4 -- 2026-11-06
 
 - Card #150: the tile badge says "Needs 3 characters" when a chest needs several; the detail page names them.
