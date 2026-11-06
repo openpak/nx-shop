@@ -950,7 +950,7 @@ function loadItems(force){
   return items;});
 }
 function itemArt(it,big){
- if(it.art&&it.item){return '<img class="pic'+(big?' big':'')+'" src="/ashigaru/api/v1/game-items/'+encodeURIComponent(it.item)+'/art" alt="" loading="lazy" decoding="async" onerror="this.outerHTML=GIFTBOX">';}
+ if(it.art&&it.item){return '<img class="pic'+(big?' big':'')+'" src="/ashigaru/api/v1/game-items/'+encodeURIComponent(it.item)+'/art?game='+encodeURIComponent(it.game)+'" alt="" loading="lazy" decoding="async" onerror="this.outerHTML=GIFTBOX">';}
  return '<span class="gift">'+GIFT+'</span>';
 }
 var GIFTBOX='<span class="gift">'+GIFT+'</span>';

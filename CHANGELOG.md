@@ -1,5 +1,9 @@
 # Changelog -- nx-shop
 
+## v0.4.1 -- 2026-11-06
+
+- Card #148: the ledger holds no per-pack art (game cosmetics host none), so a pack shows its game's own icon (Don't Starve Together: the Switch icon, the same the website draws), fetched from `NX_SHOP_ICON_BASE` (default https://openpak.org) and cached; the pack's own art wins if the ledger ever has some. Gift icon only when neither exists.
+
 ## v0.4.0 -- 2026-11-06
 
 - Game items for Rewards points: `GET /ashigaru/api/v1/game-items` and `POST .../game-items/redeem` relay through shop-core (`NX_SHOP_CORE_URL`, `NX_SHOP_CORE_KEY`) to the Rewards ledger by the player's BAAS id; a Game Items section in the storefront lists them (DST Wilson packs) and unlocks them for points. Points only. Each pack shows its own art (`GET /ashigaru/api/v1/game-items/{item}/art`, relayed through shop-core; the gift icon only when it has none); the "All titles are free" note is hidden on the Game Items screens. Unset env: the section is hidden and nothing changes.
