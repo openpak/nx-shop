@@ -143,6 +143,12 @@ func (s *server) shopAPI(w http.ResponseWriter, r *http.Request, body []byte) {
 		}
 		s.serveAvatar(w, r, baasUser)
 		return
+	case p == "/game-items" && r.Method == "GET":
+		_, baasUser := s.shopPrincipal(r)
+		s.shopGameItems(w, r, baasUser)
+	case p == "/game-items/redeem" && r.Method == "POST":
+		_, baasUser := s.shopPrincipal(r)
+		s.shopGameRedeem(w, r, baasUser, body)
 	case p == "/catalog" && r.Method == "GET":
 		owned := map[string]*ShopEntitlement{}
 		if account != "" {
@@ -629,6 +635,7 @@ func storePage() string {
 		navButton("highlights", "Highlights", `<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>`) +
 		navButton("cat:all", "Browse", `<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>`) +
 		navButton("search", "Search", `<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>`) +
+		strings.Replace(navButton("items", "Game Items", `<path d="M20 12v8H4v-8M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z"/>`), `class="nav"`, `class="nav" id="nav-items" hidden`, 1) +
 		navButton("owned", "Your Titles", `<path d="M12 20s-7.5-4.6-7.5-10A4.5 4.5 0 0 1 12 7.4 4.5 4.5 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/>`) +
 		`<button class="leave" id="close" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span>Close</button>` +
 		`</nav><section id="main"><div class="top"><button class="backbtn" id="backbtn" type="button" hidden>‹ Back</button>` +
@@ -742,6 +749,12 @@ background:var(--raised);color:var(--ink)}
 .chip:hover,.chip:focus,.backbtn:hover,.backbtn:focus{outline:none;box-shadow:0 0 0 3px var(--ring-gap,var(--paper)),0 0 0 7px var(--cursor)}
 .nav:focus,.leave:focus,.sort:focus,.chip:focus,.backbtn:focus,.act:focus{position:relative;z-index:1}
 .search:focus{border-color:var(--cursor)}
+.card.item .gift{display:flex;align-items:center;justify-content:center;width:15vh;height:15vh;border-radius:22%;background:var(--accent-weak);border:1px solid var(--accent-line);color:var(--accent);box-shadow:var(--shadow)}
+.card.item .gift svg{width:8vh;height:8vh}
+.lead{margin:0 0 2.4vh!important}
+.card .pts{display:block;margin-top:.3vh;font-size:2.1vh;font-weight:650;color:var(--accent)}
+.detail .art .gift{display:flex;align-items:center;justify-content:center;width:24vh;height:24vh;border-radius:22%;background:var(--accent-weak);border:1px solid var(--accent-line);color:var(--accent);box-shadow:var(--shadow)}
+.detail .art .gift svg{width:12vh;height:12vh}
 .card:focus{-webkit-transform:scale(1.03);transform:scale(1.03);z-index:1}
 @keyframes breathe{50%{box-shadow:0 0 0 3px var(--ring-gap,var(--paper)),0 0 0 7px var(--cursor-2)}}
 @media (prefers-reduced-motion:no-preference){.nav:hover,.nav:focus,.leave:hover,.leave:focus,.card:hover,.card:focus,.act:hover,.act:focus,.sort:hover,.sort:focus,
@@ -900,6 +913,7 @@ function section(v,focusFirst){
  if(v==='nso'){return info('Nintendo Switch Online','Memberships are not sold on OpenPak: online play and every other Nintendo Switch Online feature are already included with your OpenPak account.');}
  if(v==='redeem'){return info('Redeem Code','Codes are not needed on OpenPak: every title in this shop is free to get.');}
  if(v==='search'){return search();}
+ if(v==='items'){return itemsView();}
  load().then(function(ts){
   ts=ts.slice();
   if(v==='owned'){
@@ -916,6 +930,56 @@ function section(v,focusFirst){
   grid(ts.slice(0,PAGE),'New and updated','The shop is empty for now.','updated');
   if(focusFirst){var c=app.querySelector('.card');if(c){c.focus();}}
  }).catch(function(e){show('The shop could not be reached ('+e.message+').');app.innerHTML='';});
+}
+
+// Game items, unlocked for Rewards points (card #148): the same points and ledger as the OpenPak website
+// and the games' own shops. Points only. The section appears only when the shop is configured for it.
+var GAMES={dst:"Don't Starve Together"}, items=null, pointsNow=null;
+var GIFT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v8H4v-8M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z"/></svg>';
+function gname(g){return GAMES[g]||String(g).toUpperCase();}
+function loadItems(force){
+ if(items&&!force){return Promise.resolve(items);}
+ return api('/game-items').then(function(r){
+  items=r.status===200?r.body:{enabled:false,items:[]};
+  pointsNow=items.balance;
+  $('nav-items').hidden=!items.enabled;
+  return items;});
+}
+function itemCard(it,i){
+ var badge=it.owned?'<span class="badge own">Owned</span>':'';
+ return '<button class="card item" data-i="'+i+'">'+badge+'<span class="gift">'+GIFT+'</span><span class="n">'+esc(it.name)+'</span>'+
+  '<span class="c">'+esc(gname(it.game))+'</span><span class="pts">'+(it.owned?'&nbsp;':it.price+' points')+'</span></button>';
+}
+function itemsView(){
+ loadItems().then(function(d){
+  if(!d.enabled){return info('Game Items','Game items are not available right now.');}
+  var note=token?(d.linked?'You have '+d.balance+' points.':'Link this console to your OpenPak account to use points.'):'Sign-in has not reached the shop yet.';
+  app.innerHTML='<div class="head"><h1>Game Items</h1></div><p class="msg lead">Unlock extras for your games with Rewards points. '+esc(note)+'</p>'+
+   (d.items.length?'<div class="grid">'+d.items.map(itemCard).join('')+'</div>':'<p class="empty">No game items are on offer yet.</p>');
+  var c=app.querySelectorAll('.card.item');
+  for(var j=0;j<c.length;j++){c[j].addEventListener('click',function(){itemDetail(+this.getAttribute('data-i'));});}
+ }).catch(function(e){show('The shop could not be reached ('+e.message+').');});
+}
+function itemDetail(i){
+ var it=items.items[i]; hide();
+ view=function(){itemDetail(i);}; back=function(){section('items',true);}; chrome();
+ var act=it.owned?'<p class="msg">You already have this item.</p>':
+  (!items.linked?'<p class="msg">Link this console to your OpenPak account to use points.</p>':
+  '<button class="act" id="unlock">Unlock for '+it.price+' points</button>');
+ app.innerHTML='<div class="detail"><div class="art"><span class="gift">'+GIFT+'</span></div><div><h1>'+esc(it.name)+'</h1><p class="pub">'+esc(gname(it.game))+'</p>'+
+  '<div class="facts"><span>'+esc(it.slot||'item')+'</span><span>'+it.price+' points</span><span>You have '+items.balance+' points</span></div><div class="acts">'+act+'</div></div></div>';
+ var u=$('unlock'); if(u){u.focus();u.addEventListener('click',function(){unlock(i);});}
+}
+function unlock(i){
+ var it=items.items[i]; hide(); app.innerHTML='<p class="empty">Unlocking '+esc(it.name)+'…</p>';
+ api('/game-items/redeem',{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({game:it.game,game_ref:it.game_ref,expected_price:it.price,trans_id:'nx'+Date.now()+Math.random().toString(36).slice(2,8)})}).then(function(r){
+  if(r.status===200){report({event:'game_item_unlocked',game:it.game,game_ref:it.game_ref});
+   return loadItems(true).then(function(){itemDetail(i);app.insertAdjacentHTML('afterbegin','<p class="msg ok">Unlocked. It will show up in the game.</p>');});}
+  var c=r.body&&r.body.code;
+  var m=r.status===402?'You need '+(it.price-(r.body.balance||0))+' more points for this item.':c==='owned'?'You already have this item.':c==='price_mismatch'?'The points cost changed. Open the list again.':r.status===404?'Link this console to your OpenPak account to use points.':'This item could not be unlocked right now.';
+  loadItems(true).then(function(){itemDetail(i);show(m);});
+ }).catch(function(){itemDetail(i);show('The points ledger could not be reached.');});
 }
 function search(){
  app.innerHTML='<input class="search" id="q" placeholder="Search the OpenPak Shop" autocomplete="off"><div id="res"></div>';
@@ -1043,6 +1107,7 @@ function route(){
 if(!bridge.present){show('This is the console shop opened in a plain browser: browsing works, getting titles does not.');}
 report({event:'page',path:location.pathname,query:location.search,bridge:bridge.present});
 route();
-identify(function(){catalog=null;avatar();report({event:'identified'});if(view){view();}});
+loadItems().catch(function(){});
+identify(function(){catalog=null;items=null;loadItems().catch(function(){});avatar();report({event:'identified'});if(view){view();}});
 })();
 `

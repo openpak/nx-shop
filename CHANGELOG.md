@@ -1,5 +1,9 @@
 # Changelog -- nx-shop
 
+## Unreleased (card #148, waiting on the UI review)
+
+- Game items for Rewards points: `GET /ashigaru/api/v1/game-items` and `POST .../game-items/redeem` relay through shop-core (`NX_SHOP_CORE_URL`, `NX_SHOP_CORE_KEY`) to the Rewards ledger by the player's BAAS id; a Game Items section in the storefront lists them (DST Wilson packs) and unlocks them for points. Points only. Unset env: the section is hidden and nothing changes.
+
 ## v0.3.1 -- 2026-11-05
 
 - Card #141: pearljam `GET /civil/v1/consumables/<id>/items` answers an empty, well-formed list (`consumable_items: []`, `length`/`total` 0, `inc_tax_message`) instead of `{}`. Don't Starve Together asks for its currency-pack list (`BOLTPACKS0000001`) at the main menu and before its in-game Shop; without `consumable_items` it logs "Error parsing JSON while receiving product list" and the Shop stays on "Loading...". OpenPak sells nothing for money, so the list is empty. Kept pearljam request dumps no longer contain tokens, cookies or Authorization values.

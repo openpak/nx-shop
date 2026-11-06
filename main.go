@@ -50,6 +50,9 @@ type server struct {
 	// registration carries (nx-baas until Penne moves, then nx-penne).
 	core  identity
 	penne registrations
+	// shopCore is the console-neutral shop catalog; here it only relays game items sold for Rewards
+	// points. nil = the shop lists none.
+	shopCore *shopCoreClient
 }
 
 // fixedNames are the shop names that were on nx-baas's fixed certificate, kept fixed here:
@@ -168,11 +171,12 @@ func main() {
 	}
 	shopDir := getenv("NX_SHOP_DIR", getenv("NX_DATA", "/data")+"/shop")
 	s := &server{
-		shop:  openShopState(shopDir, os.Getenv("NX_SHOP_DATABASE_URL")),
-		key:   key,
-		idKid: getenv("BAAS_KID", "openpak-baas-key-1"),
-		core:  core,
-		penne: penne,
+		shop:     openShopState(shopDir, os.Getenv("NX_SHOP_DATABASE_URL")),
+		key:      key,
+		idKid:    getenv("BAAS_KID", "openpak-baas-key-1"),
+		core:     core,
+		penne:    penne,
+		shopCore: newShopCoreClient(os.Getenv("NX_SHOP_CORE_URL"), os.Getenv("NX_SHOP_CORE_KEY")),
 	}
 	go func() {
 		addr := getenv("NX_API_ADDR", ":20070")
