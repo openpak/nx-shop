@@ -960,7 +960,7 @@ function itemArt(it,big){
 }
 var GIFTBOX='<span class="gift">'+GIFT+'</span>';
 function itemCard(it,i){
- var badge=it.owned?'<span class="badge own">Owned</span>':(it.locked&&it.locked.length?'<span class="badge">Needs '+esc(needs(it))+'</span>':'');
+ var badge=it.owned?'<span class="badge own">Owned</span>':(it.locked&&it.locked.length?'<span class="badge">Needs '+(it.locked.length>1?it.locked.length+' characters':esc(needs(it)))+'</span>':'');
  return '<button class="card item" data-i="'+i+'">'+badge+itemArt(it)+'<span class="n">'+esc(it.name)+'</span>'+
   '<span class="pts">'+(it.owned?'&nbsp;':it.price+' points')+'</span></button>';
 }

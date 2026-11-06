@@ -1,5 +1,9 @@
 # Changelog -- nx-shop
 
+## v0.4.4 -- 2026-11-06
+
+- Card #150: the tile badge says "Needs 3 characters" when a chest needs several; the detail page names them.
+
 ## v0.4.3 -- 2026-11-06
 
 - Card #150: the Game Items screen follows the game's purchase rules. A chest the game would not sell yet (it holds skins for Wanda, Wormwood, Wortox or Wurt and the player has not unlocked that character) shows "Needs <character>" and no unlock button; the ledger refuses it too (409 `requires`).
