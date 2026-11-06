@@ -757,7 +757,7 @@ background:var(--raised);color:var(--ink)}
 .card.item .gift svg{width:6.5vh;height:6.5vh}
 .lead{margin:0 0 2.4vh!important}
 .gh{display:flex;align-items:center;gap:1.4vh}.gicon{width:5vh;height:5vh;border-radius:22%;object-fit:cover;box-shadow:var(--shadow)}
-.card.item img.pic{display:block;width:12vh;height:12vh;border-radius:22%;object-fit:cover;background:var(--paper-2);box-shadow:var(--shadow)}
+.card.item img.pic{display:block;width:62%;height:auto;aspect-ratio:1/1;border-radius:22%;object-fit:cover;background:var(--paper-2);box-shadow:var(--shadow)}
 .detail .art img.pic.big{width:24vh;height:24vh;border-radius:22%;object-fit:cover;box-shadow:var(--shadow)}
 .card .pts{display:block;margin-top:.3vh;font-size:2.1vh;font-weight:650;color:var(--accent)}
 .detail .art .gift{display:flex;align-items:center;justify-content:center;width:24vh;height:24vh;border-radius:22%;background:var(--accent-weak);border:1px solid var(--accent-line);color:var(--accent);box-shadow:var(--shadow)}
@@ -960,7 +960,7 @@ var GIFTBOX='<span class="gift">'+GIFT+'</span>';
 function itemCard(it,i){
  var badge=it.owned?'<span class="badge own">Owned</span>':'';
  return '<button class="card item" data-i="'+i+'">'+badge+itemArt(it)+'<span class="n">'+esc(it.name)+'</span>'+
-  '<span class="c">'+esc(gname(it.game))+'</span><span class="pts">'+(it.owned?'&nbsp;':it.price+' points')+'</span></button>';
+  '<span class="pts">'+(it.owned?'&nbsp;':it.price+' points')+'</span></button>';
 }
 function gameShelves(list){
  var order=[],by={};

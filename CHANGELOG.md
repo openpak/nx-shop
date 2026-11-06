@@ -1,8 +1,8 @@
 # Changelog -- nx-shop
 
-## Unreleased
+## v0.4.2 -- 2026-11-06
 
-- Card #148 (owner rule 2026-11-06): the Game Items screen is grouped into one section per game, headed by the game's name and icon (`GET /ashigaru/api/v1/game-items/icon?game=`). Each pack shows only its own picture from the ledger; the game-icon stand-in is gone.
+- Pack art fills about 60% of the tile and the per-tile game line is gone (the section header names the game). Card #148 (owner rule 2026-11-06): the Game Items screen is grouped into one section per game, headed by the game's name and icon (`GET /ashigaru/api/v1/game-items/icon?game=`). Each pack shows only its own picture from the ledger; the game-icon stand-in is gone.
 
 ## v0.4.1 -- 2026-11-06
 
