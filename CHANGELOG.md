@@ -1,5 +1,9 @@
 # Changelog -- nx-shop
 
+## Unreleased
+
+- Card #148 (owner rule 2026-11-06): the Game Items screen is grouped into one section per game, headed by the game's name and icon (`GET /ashigaru/api/v1/game-items/icon?game=`). Each pack shows only its own picture from the ledger; the game-icon stand-in is gone.
+
 ## v0.4.1 -- 2026-11-06
 
 - Card #148: the ledger holds no per-pack art (game cosmetics host none), so a pack shows its game's own icon (Don't Starve Together: the Switch icon, the same the website draws), fetched from `NX_SHOP_ICON_BASE` (default https://openpak.org) and cached; the pack's own art wins if the ledger ever has some. Gift icon only when neither exists.

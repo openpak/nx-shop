@@ -83,12 +83,6 @@ func (s *server) shopGameItems(w http.ResponseWriter, r *http.Request, baasUser 
 	if in.Items == nil {
 		in.Items = []map[string]any{}
 	}
-	// A pack has no art of its own unless the ledger holds some; the game's own icon stands in for it.
-	for _, it := range in.Items {
-		if g, _ := it["game"].(string); gameIconID[g] != "" {
-			it["art"] = true
-		}
-	}
 	writeJSON(w, 200, map[string]any{"enabled": true, "linked": in.Account != "", "balance": in.Balance, "items": in.Items})
 }
 
@@ -129,8 +123,8 @@ func (s *server) shopGameRedeem(w http.ResponseWriter, r *http.Request, baasUser
 	w.Write(b)
 }
 
-// gameIconID is each hosted game's Switch title id: its icon is the art a pack shows when it has none of its own
-// (the website draws the same icon, /titles/icon/<id>).
+// gameIconID is each hosted game's Switch title id: its icon heads the game's section (the website draws the same
+// icon, /titles/icon/<id>).
 var gameIconID = map[string]string{"dst": "010090100E334000"}
 
 var gameIcons sync.Map // game -> iconBlob
@@ -140,54 +134,65 @@ type iconBlob struct {
 	data []byte
 }
 
-// shopGameItemArt answers GET /ashigaru/api/v1/game-items/{item}/art?game=: the pack's own picture from the ledger (through
-// shop-core) when it has one, else the game's icon. Public like the catalog icons; 404 when there is neither.
+// shopGameItemArt answers GET /ashigaru/api/v1/game-items/{item}/art: the pack's own picture from the ledger (through
+// shop-core). Every item has one; 404 when the ledger holds none. Public like the catalog icons.
 func (s *server) shopGameItemArt(w http.ResponseWriter, r *http.Request, item string) {
 	if s.shopCore == nil || item == "" || strings.ContainsAny(item, "/?#% ") {
 		http.NotFound(w, r)
 		return
 	}
-	ct, data := "", []byte(nil)
 	req, err := http.NewRequestWithContext(r.Context(), "GET", s.shopCore.base+"/v1/shop/switch/game-items/"+url.PathEscape(item)+"/art", nil)
-	if err == nil {
-		req.Header.Set("X-Internal-Key", s.shopCore.key)
-		if resp, err := s.shopCore.hc.Do(req); err == nil {
-			if resp.StatusCode == 200 {
-				ct = resp.Header.Get("Content-Type")
-				data, _ = io.ReadAll(io.LimitReader(resp.Body, 8<<20))
-			}
-			resp.Body.Close()
-		}
+	if err != nil {
+		http.NotFound(w, r)
+		return
 	}
-	if len(data) == 0 {
-		g := r.URL.Query().Get("game")
-		id := gameIconID[g]
-		if id == "" {
-			http.NotFound(w, r)
-			return
-		}
-		if v, ok := gameIcons.Load(g); ok {
-			b := v.(iconBlob)
-			ct, data = b.ct, b.data
-		} else {
-			base := getenv("NX_SHOP_ICON_BASE", "https://openpak.org")
-			rq, _ := http.NewRequestWithContext(r.Context(), "GET", strings.TrimRight(base, "/")+"/titles/icon/"+id, nil)
-			resp, err := s.shopCore.hc.Do(rq)
-			if err != nil {
-				http.NotFound(w, r)
-				return
-			}
-			data, _ = io.ReadAll(io.LimitReader(resp.Body, 4<<20))
-			ct = resp.Header.Get("Content-Type")
-			ok := resp.StatusCode == 200 && strings.HasPrefix(ct, "image/")
-			resp.Body.Close()
-			if !ok || len(data) == 0 {
-				http.NotFound(w, r)
-				return
-			}
-			gameIcons.Store(g, iconBlob{ct, data})
-		}
+	req.Header.Set("X-Internal-Key", s.shopCore.key)
+	resp, err := s.shopCore.hc.Do(req)
+	if err != nil {
+		http.NotFound(w, r)
+		return
 	}
+	defer resp.Body.Close()
+	data, _ := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
+	if resp.StatusCode != 200 || len(data) == 0 {
+		http.NotFound(w, r)
+		return
+	}
+	writeArt(w, resp.Header.Get("Content-Type"), data)
+}
+
+// shopGameIcon answers GET /ashigaru/api/v1/game-items/icon?game=: the game's own icon for its section header.
+func (s *server) shopGameIcon(w http.ResponseWriter, r *http.Request) {
+	g := r.URL.Query().Get("game")
+	id := gameIconID[g]
+	if s.shopCore == nil || id == "" {
+		http.NotFound(w, r)
+		return
+	}
+	if v, ok := gameIcons.Load(g); ok {
+		b := v.(iconBlob)
+		writeArt(w, b.ct, b.data)
+		return
+	}
+	base := getenv("NX_SHOP_ICON_BASE", "https://openpak.org")
+	rq, _ := http.NewRequestWithContext(r.Context(), "GET", strings.TrimRight(base, "/")+"/titles/icon/"+id, nil)
+	resp, err := s.shopCore.hc.Do(rq)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	defer resp.Body.Close()
+	data, _ := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
+	ct := resp.Header.Get("Content-Type")
+	if resp.StatusCode != 200 || !strings.HasPrefix(ct, "image/") || len(data) == 0 {
+		http.NotFound(w, r)
+		return
+	}
+	gameIcons.Store(g, iconBlob{ct, data})
+	writeArt(w, ct, data)
+}
+
+func writeArt(w http.ResponseWriter, ct string, data []byte) {
 	w.Header().Set("Content-Type", ct)
 	w.Header().Set("Cache-Control", "public, max-age=3600")
 	w.Header().Set("X-Content-Type-Options", "nosniff")

@@ -66,14 +66,14 @@ func TestGameItemArtRelay(t *testing.T) {
 		t.Fatalf("off: %d", rec.Code)
 	}
 	s.shopCore = newShopCoreClient(core.URL, "k")
-	rec := shopReq(s, "GET", "/ashigaru/api/v1/game-items/dst-pack-x/art?game=dst", "", "")
+	rec := shopReq(s, "GET", "/ashigaru/api/v1/game-items/dst-pack-x/art", "", "")
 	if rec.Code != 200 || rec.Header().Get("Content-Type") != "image/png" || rec.Body.String() != "PNG" {
 		t.Fatalf("art: %d %q", rec.Code, rec.Body.String())
 	}
 	if rec := shopReq(s, "GET", "/ashigaru/api/v1/game-items/nope/art", "", ""); rec.Code != 404 {
 		t.Fatalf("missing: %d", rec.Code)
 	}
-	// No art of its own: the game's icon stands in.
+	// An item with no art of its own is not dressed up with the game's icon; the game's icon heads its section.
 	icon := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/titles/icon/010090100E334000" {
 			w.Header().Set("Content-Type", "image/jpeg")
@@ -84,7 +84,10 @@ func TestGameItemArtRelay(t *testing.T) {
 	}))
 	defer icon.Close()
 	t.Setenv("NX_SHOP_ICON_BASE", icon.URL)
-	if rec := shopReq(s, "GET", "/ashigaru/api/v1/game-items/other/art?game=dst", "", ""); rec.Code != 200 || rec.Body.String() != "JPG" {
+	if rec := shopReq(s, "GET", "/ashigaru/api/v1/game-items/other/art", "", ""); rec.Code != 404 {
+		t.Fatalf("no icon stand-in: %d", rec.Code)
+	}
+	if rec := shopReq(s, "GET", "/ashigaru/api/v1/game-items/icon?game=dst", "", ""); rec.Code != 200 || rec.Body.String() != "JPG" {
 		t.Fatalf("game icon: %d %q", rec.Code, rec.Body.String())
 	}
 }
