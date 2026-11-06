@@ -121,3 +121,31 @@ func (s *server) shopGameRedeem(w http.ResponseWriter, r *http.Request, baasUser
 	w.WriteHeader(code)
 	w.Write(b)
 }
+
+// shopGameItemArt answers GET /ashigaru/api/v1/game-items/{item}/art: the pack's own picture, relayed through shop-core
+// so the page loads it from the shop's origin. Public like the catalog icons; 404 when there is none.
+func (s *server) shopGameItemArt(w http.ResponseWriter, r *http.Request, item string) {
+	if s.shopCore == nil || item == "" || strings.ContainsAny(item, "/?#% ") {
+		http.NotFound(w, r)
+		return
+	}
+	req, err := http.NewRequestWithContext(r.Context(), "GET", s.shopCore.base+"/v1/shop/switch/game-items/"+url.PathEscape(item)+"/art", nil)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	req.Header.Set("X-Internal-Key", s.shopCore.key)
+	resp, err := s.shopCore.hc.Do(req)
+	if err != nil || resp.StatusCode != 200 {
+		if resp != nil {
+			resp.Body.Close()
+		}
+		http.NotFound(w, r)
+		return
+	}
+	defer resp.Body.Close()
+	w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
+	w.Header().Set("Cache-Control", "public, max-age=3600")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	io.Copy(w, io.LimitReader(resp.Body, 8<<20))
+}

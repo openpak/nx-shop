@@ -50,3 +50,27 @@ func TestGameItemsListAndRedeemThroughShopCore(t *testing.T) {
 		t.Fatalf("anonymous redeem: %d", rec.Code)
 	}
 }
+
+func TestGameItemArtRelay(t *testing.T) {
+	core := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/shop/switch/game-items/dst-pack-x/art" || r.Header.Get("X-Internal-Key") != "k" {
+			w.WriteHeader(404)
+			return
+		}
+		w.Header().Set("Content-Type", "image/png")
+		w.Write([]byte("PNG"))
+	}))
+	defer core.Close()
+	s := shopServerFor(t)
+	if rec := shopReq(s, "GET", "/ashigaru/api/v1/game-items/dst-pack-x/art", "", ""); rec.Code != 404 {
+		t.Fatalf("off: %d", rec.Code)
+	}
+	s.shopCore = newShopCoreClient(core.URL, "k")
+	rec := shopReq(s, "GET", "/ashigaru/api/v1/game-items/dst-pack-x/art", "", "")
+	if rec.Code != 200 || rec.Header().Get("Content-Type") != "image/png" || rec.Body.String() != "PNG" {
+		t.Fatalf("art: %d %q", rec.Code, rec.Body.String())
+	}
+	if rec := shopReq(s, "GET", "/ashigaru/api/v1/game-items/nope/art", "", ""); rec.Code != 404 {
+		t.Fatalf("missing: %d", rec.Code)
+	}
+}

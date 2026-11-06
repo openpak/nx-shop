@@ -1,8 +1,8 @@
 # Changelog -- nx-shop
 
-## Unreleased (card #148, waiting on the UI review)
+## v0.4.0 -- 2026-11-06
 
-- Game items for Rewards points: `GET /ashigaru/api/v1/game-items` and `POST .../game-items/redeem` relay through shop-core (`NX_SHOP_CORE_URL`, `NX_SHOP_CORE_KEY`) to the Rewards ledger by the player's BAAS id; a Game Items section in the storefront lists them (DST Wilson packs) and unlocks them for points. Points only. Unset env: the section is hidden and nothing changes.
+- Game items for Rewards points: `GET /ashigaru/api/v1/game-items` and `POST .../game-items/redeem` relay through shop-core (`NX_SHOP_CORE_URL`, `NX_SHOP_CORE_KEY`) to the Rewards ledger by the player's BAAS id; a Game Items section in the storefront lists them (DST Wilson packs) and unlocks them for points. Points only. Each pack shows its own art (`GET /ashigaru/api/v1/game-items/{item}/art`, relayed through shop-core; the gift icon only when it has none); the "All titles are free" note is hidden on the Game Items screens. Unset env: the section is hidden and nothing changes.
 
 ## v0.3.1 -- 2026-11-05
 

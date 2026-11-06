@@ -143,6 +143,8 @@ func (s *server) shopAPI(w http.ResponseWriter, r *http.Request, body []byte) {
 		}
 		s.serveAvatar(w, r, baasUser)
 		return
+	case strings.HasPrefix(p, "/game-items/") && strings.HasSuffix(p, "/art") && r.Method == "GET":
+		s.shopGameItemArt(w, r, strings.TrimSuffix(strings.TrimPrefix(p, "/game-items/"), "/art"))
 	case p == "/game-items" && r.Method == "GET":
 		_, baasUser := s.shopPrincipal(r)
 		s.shopGameItems(w, r, baasUser)
@@ -749,9 +751,11 @@ background:var(--raised);color:var(--ink)}
 .chip:hover,.chip:focus,.backbtn:hover,.backbtn:focus{outline:none;box-shadow:0 0 0 3px var(--ring-gap,var(--paper)),0 0 0 7px var(--cursor)}
 .nav:focus,.leave:focus,.sort:focus,.chip:focus,.backbtn:focus,.act:focus{position:relative;z-index:1}
 .search:focus{border-color:var(--cursor)}
-.card.item .gift{display:flex;align-items:center;justify-content:center;width:15vh;height:15vh;border-radius:22%;background:var(--accent-weak);border:1px solid var(--accent-line);color:var(--accent);box-shadow:var(--shadow)}
-.card.item .gift svg{width:8vh;height:8vh}
+.card.item .gift{display:flex;align-items:center;justify-content:center;width:12vh;height:12vh;border-radius:22%;background:var(--accent-weak);border:1px solid var(--accent-line);color:var(--accent);box-shadow:var(--shadow)}
+.card.item .gift svg{width:6.5vh;height:6.5vh}
 .lead{margin:0 0 2.4vh!important}
+.card.item img.pic{display:block;width:12vh;height:12vh;border-radius:22%;object-fit:cover;background:var(--paper-2);box-shadow:var(--shadow)}
+.detail .art img.pic.big{width:24vh;height:24vh;border-radius:22%;object-fit:cover;box-shadow:var(--shadow)}
 .card .pts{display:block;margin-top:.3vh;font-size:2.1vh;font-weight:650;color:var(--accent)}
 .detail .art .gift{display:flex;align-items:center;justify-content:center;width:24vh;height:24vh;border-radius:22%;background:var(--accent-weak);border:1px solid var(--accent-line);color:var(--accent);box-shadow:var(--shadow)}
 .detail .art .gift svg{width:12vh;height:12vh}
@@ -853,7 +857,7 @@ function load(){
   catalog=r.body.titles||[];return catalog;});
 }
 // The top bar: Back where a step can be undone (touch has no B button), the note otherwise.
-function chrome(){$('backbtn').hidden=!back;$('note').hidden=!!back;}
+function chrome(){$('backbtn').hidden=!back;$('note').hidden=!!back||!!(view&&view.v==='items'||view&&view.gi);}
 function select(v){
  if(v.indexOf('cat:')===0){v='cat:all';}
  var b=document.querySelectorAll('.nav');
@@ -945,9 +949,14 @@ function loadItems(force){
   $('nav-items').hidden=!items.enabled;
   return items;});
 }
+function itemArt(it,big){
+ if(it.art&&it.item){return '<img class="pic'+(big?' big':'')+'" src="/ashigaru/api/v1/game-items/'+encodeURIComponent(it.item)+'/art" alt="" loading="lazy" decoding="async" onerror="this.outerHTML=GIFTBOX">';}
+ return '<span class="gift">'+GIFT+'</span>';
+}
+var GIFTBOX='<span class="gift">'+GIFT+'</span>';
 function itemCard(it,i){
  var badge=it.owned?'<span class="badge own">Owned</span>':'';
- return '<button class="card item" data-i="'+i+'">'+badge+'<span class="gift">'+GIFT+'</span><span class="n">'+esc(it.name)+'</span>'+
+ return '<button class="card item" data-i="'+i+'">'+badge+itemArt(it)+'<span class="n">'+esc(it.name)+'</span>'+
   '<span class="c">'+esc(gname(it.game))+'</span><span class="pts">'+(it.owned?'&nbsp;':it.price+' points')+'</span></button>';
 }
 function itemsView(){
@@ -962,11 +971,11 @@ function itemsView(){
 }
 function itemDetail(i){
  var it=items.items[i]; hide();
- view=function(){itemDetail(i);}; back=function(){section('items',true);}; chrome();
+ view=function(){itemDetail(i);}; view.gi=1; back=function(){section('items',true);}; chrome();
  var act=it.owned?'<p class="msg">You already have this item.</p>':
   (!items.linked?'<p class="msg">Link this console to your OpenPak account to use points.</p>':
   '<button class="act" id="unlock">Unlock for '+it.price+' points</button>');
- app.innerHTML='<div class="detail"><div class="art"><span class="gift">'+GIFT+'</span></div><div><h1>'+esc(it.name)+'</h1><p class="pub">'+esc(gname(it.game))+'</p>'+
+ app.innerHTML='<div class="detail"><div class="art">'+itemArt(it,1)+'</div><div><h1>'+esc(it.name)+'</h1><p class="pub">'+esc(gname(it.game))+'</p>'+
   '<div class="facts"><span>'+esc(it.slot||'item')+'</span><span>'+it.price+' points</span><span>You have '+items.balance+' points</span></div><div class="acts">'+act+'</div></div></div>';
  var u=$('unlock'); if(u){u.focus();u.addEventListener('click',function(){unlock(i);});}
 }
