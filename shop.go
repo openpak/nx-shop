@@ -758,7 +758,7 @@ background:var(--accent);border:1px solid var(--accent);color:var(--on-accent)}
 .facts{display:flex;flex-wrap:wrap;gap:1vh .7vw;margin:0 0 2.8vh}
 .facts span{padding:.6vh 1.2vw;border-radius:999px;font-size:2.3vh;font-weight:600;background:var(--paper-2);border:1px solid var(--line);color:var(--ink-2)}
 .acts{display:flex;flex-wrap:wrap;gap:1.4vh 1vw}
-.act{display:inline-flex;align-items:center;justify-content:center;min-height:9.4vh;padding:0 3vw;border-radius:999px;font-weight:650;font-size:3.1vh;
+.act{display:inline-flex;align-items:center;justify-content:center;min-height:9.4vh;padding:0 3vw;border-radius:1.4vh;font-weight:650;font-size:3.1vh;
 color:var(--on-accent);border:1px solid var(--accent);background:var(--accent)}
 .act.plain{background:var(--raised);color:var(--ink);border-color:var(--line-2);box-shadow:var(--shadow-sm)}
 .desc{margin:0 0 2.4vh;font-size:2.6vh;color:var(--ink-2);white-space:pre-line;max-width:60em}
@@ -1033,20 +1033,24 @@ function unlock(i){
   loadItems(true).then(function(){itemDetail(i);show(m);});
  }).catch(function(){itemDetail(i);show('The points ledger could not be reached.');});
 }
-var SEARCHQ='', SEARCHCAT='all';
+var SEARCHQ='', SEARCHCAT='all', SEARCHPRICE='any';
+var PRICES={any:'Any',free:'Free',points:'Points'};
 function search(){
  app.innerHTML='<div class="srow"><input class="search" id="q" placeholder="Enter keyword" autocomplete="off"><button class="act" id="go" type="button">Search</button></div>'+
-  '<div class="fl"><button class="sort" id="fcat" type="button"><b>Category</b> <span id="fcatv"></span></button><button class="sort" id="fpts" type="button"><b>Price</b> Any</button></div><div id="res"></div>';
+  '<div class="fl"><button class="sort" id="fcat" type="button"><b>Category</b> <span id="fcatv"></span></button><button class="sort" id="fpts" type="button"><b>Price</b> <span id="fptsv"></span></button></div><div id="res"></div>';
  var q=$('q'); q.value=SEARCHQ;
  function lab(){var c=CATS.filter(function(x){return x.key===SEARCHCAT;})[0];$('fcatv').textContent=c?c.label:'All';}
  lab();
+ function plab(){$('fptsv').textContent=PRICES[SEARCHPRICE];}
+ plab();
  function run(){SEARCHQ=q.value;Promise.all([load(),loadItems().catch(function(){return {items:[]};})]).then(function(r){var ts=r[0],its=(r[1].items||[]);var s=q.value.trim().toLowerCase();
-  var hit=s?ts.filter(function(t){return (t.name+' '+(t.publisher||'')).toLowerCase().indexOf(s)>=0&&(SEARCHCAT==='all'||t.category===SEARCHCAT);}):[];
-  var ih=s&&SEARCHCAT==='all'?its.map(function(it,i){return {it:it,i:i};}).filter(function(x){return (x.it.name+' '+gname(x.it.game)).toLowerCase().indexOf(s)>=0;}):[];
+  var hit=s&&SEARCHPRICE!=='points'?ts.filter(function(t){return (t.name+' '+(t.publisher||'')).toLowerCase().indexOf(s)>=0&&(SEARCHCAT==='all'||t.category===SEARCHCAT);}):[];
+  var ih=s&&SEARCHCAT==='all'&&SEARCHPRICE!=='free'?its.map(function(it,i){return {it:it,i:i};}).filter(function(x){return (x.it.name+' '+gname(x.it.game)).toLowerCase().indexOf(s)>=0;}):[];
   $('res').innerHTML=s?((hit.length?'<div class="rowh"><h2>Titles</h2></div><div class="grid" id="tg"></div>':'')+(ih.length?'<div class="rowh"><h2>Game Items</h2></div><div class="grid" id="ig">'+ih.slice(0,10).map(function(x){return itemCard(x.it,x.i);}).join('')+'</div>':'')+(hit.length||ih.length?'':'<p class="empty">No titles match “'+esc(q.value)+'”.</p>')):'';
   if(hit.length){pager($('tg'),hit);}
   var c=$('res').querySelectorAll('.card.item');for(var j=0;j<c.length;j++){c[j].addEventListener('click',function(){itemDetail(+this.getAttribute('data-i'));});}});}
  q.addEventListener('input',run);q.addEventListener('change',run);$('go').addEventListener('click',run);
+ $('fpts').addEventListener('click',function(){var k=Object.keys(PRICES);SEARCHPRICE=k[(k.indexOf(SEARCHPRICE)+1)%k.length];plab();run();$('fpts').focus();});
  $('fcat').addEventListener('click',function(){var k=CATS.map(function(c){return c.key;});SEARCHCAT=k[(k.indexOf(SEARCHCAT)+1)%k.length];lab();run();$('fcat').focus();});
  // The console opens its keyboard when the player focuses the box, not when a script does, so
  // the box is not focused for them; A on it re-focuses inside the key press, which does.
