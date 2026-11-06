@@ -143,6 +143,8 @@ func (s *server) shopAPI(w http.ResponseWriter, r *http.Request, body []byte) {
 		}
 		s.serveAvatar(w, r, baasUser)
 		return
+	case p == "/game-items/icon" && r.Method == "GET":
+		s.shopGameIcon(w, r)
 	case strings.HasPrefix(p, "/game-items/") && strings.HasSuffix(p, "/art") && r.Method == "GET":
 		s.shopGameItemArt(w, r, strings.TrimSuffix(strings.TrimPrefix(p, "/game-items/"), "/art"))
 	case p == "/game-items" && r.Method == "GET":
@@ -754,7 +756,8 @@ background:var(--raised);color:var(--ink)}
 .card.item .gift{display:flex;align-items:center;justify-content:center;width:12vh;height:12vh;border-radius:22%;background:var(--accent-weak);border:1px solid var(--accent-line);color:var(--accent);box-shadow:var(--shadow)}
 .card.item .gift svg{width:6.5vh;height:6.5vh}
 .lead{margin:0 0 2.4vh!important}
-.card.item img.pic{display:block;width:12vh;height:12vh;border-radius:22%;object-fit:cover;background:var(--paper-2);box-shadow:var(--shadow)}
+.gh{display:flex;align-items:center;gap:1.4vh}.gicon{width:5vh;height:5vh;border-radius:22%;object-fit:cover;box-shadow:var(--shadow)}
+.card.item img.pic{display:block;width:62%;height:auto;aspect-ratio:1/1;border-radius:22%;object-fit:cover;background:var(--paper-2);box-shadow:var(--shadow)}
 .detail .art img.pic.big{width:24vh;height:24vh;border-radius:22%;object-fit:cover;box-shadow:var(--shadow)}
 .card .pts{display:block;margin-top:.3vh;font-size:2.1vh;font-weight:650;color:var(--accent)}
 .detail .art .gift{display:flex;align-items:center;justify-content:center;width:24vh;height:24vh;border-radius:22%;background:var(--accent-weak);border:1px solid var(--accent-line);color:var(--accent);box-shadow:var(--shadow)}
@@ -938,7 +941,7 @@ function section(v,focusFirst){
 
 // Game items, unlocked for Rewards points (card #148): the same points and ledger as the OpenPak website
 // and the games' own shops. Points only. The section appears only when the shop is configured for it.
-var GAMES={dst:"Don't Starve Together"}, items=null, pointsNow=null;
+var GAMES={dst:"Don't Starve Together","stumble-guys":"Stumble Guys"}, items=null, pointsNow=null;
 var GIFT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v8H4v-8M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z"/></svg>';
 function gname(g){return GAMES[g]||String(g).toUpperCase();}
 function loadItems(force){
@@ -950,21 +953,28 @@ function loadItems(force){
   return items;});
 }
 function itemArt(it,big){
- if(it.art&&it.item){return '<img class="pic'+(big?' big':'')+'" src="/ashigaru/api/v1/game-items/'+encodeURIComponent(it.item)+'/art?game='+encodeURIComponent(it.game)+'" alt="" loading="lazy" decoding="async" onerror="this.outerHTML=GIFTBOX">';}
+ if(it.art&&it.item){return '<img class="pic'+(big?' big':'')+'" src="/ashigaru/api/v1/game-items/'+encodeURIComponent(it.item)+'/art" alt="" loading="lazy" decoding="async" onerror="this.outerHTML=GIFTBOX">';}
  return '<span class="gift">'+GIFT+'</span>';
 }
 var GIFTBOX='<span class="gift">'+GIFT+'</span>';
 function itemCard(it,i){
  var badge=it.owned?'<span class="badge own">Owned</span>':'';
  return '<button class="card item" data-i="'+i+'">'+badge+itemArt(it)+'<span class="n">'+esc(it.name)+'</span>'+
-  '<span class="c">'+esc(gname(it.game))+'</span><span class="pts">'+(it.owned?'&nbsp;':it.price+' points')+'</span></button>';
+  '<span class="pts">'+(it.owned?'&nbsp;':it.price+' points')+'</span></button>';
+}
+function gameShelves(list){
+ var order=[],by={};
+ list.forEach(function(it,i){if(!by[it.game]){by[it.game]=[];order.push(it.game);}by[it.game].push(itemCard(it,i));});
+ order.sort(function(a,b){return gname(a)<gname(b)?-1:1;});
+ return order.map(function(g){
+  return '<h2 class="gh"><img class="gicon" src="/ashigaru/api/v1/game-items/icon?game='+encodeURIComponent(g)+'" alt="" onerror="this.remove()">'+esc(gname(g))+'</h2><div class="grid">'+by[g].join('')+'</div>';}).join('');
 }
 function itemsView(){
  loadItems().then(function(d){
   if(!d.enabled){return info('Game Items','Game items are not available right now.');}
   var note=token?(d.linked?'You have '+d.balance+' points.':'Link this console to your OpenPak account to use points.'):'Sign-in has not reached the shop yet.';
   app.innerHTML='<div class="head"><h1>Game Items</h1></div><p class="msg lead">Unlock extras for your games with Rewards points. '+esc(note)+'</p>'+
-   (d.items.length?'<div class="grid">'+d.items.map(itemCard).join('')+'</div>':'<p class="empty">No game items are on offer yet.</p>');
+   (d.items.length?gameShelves(d.items):'<p class="empty">No game items are on offer yet.</p>');
   var c=app.querySelectorAll('.card.item');
   for(var j=0;j<c.length;j++){c[j].addEventListener('click',function(){itemDetail(+this.getAttribute('data-i'));});}
  }).catch(function(e){show('The shop could not be reached ('+e.message+').');});
