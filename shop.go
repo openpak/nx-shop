@@ -943,6 +943,8 @@ function section(v,focusFirst){
 // and the games' own shops. Points only. The section appears only when the shop is configured for it.
 var GAMES={dst:"Don't Starve Together","stumble-guys":"Stumble Guys"}, items=null, pointsNow=null;
 var GIFT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v8H4v-8M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z"/></svg>';
+var NEEDS={wanda_none:'Wanda',wormwood_none:'Wormwood',wortox_none:'Wortox',wurt_none:'Wurt'};
+function needs(it){return (it.locked||[]).map(function(k){return NEEDS[k]||k;}).join(', ');}
 function gname(g){return GAMES[g]||String(g).toUpperCase();}
 function loadItems(force){
  if(items&&!force){return Promise.resolve(items);}
@@ -958,7 +960,7 @@ function itemArt(it,big){
 }
 var GIFTBOX='<span class="gift">'+GIFT+'</span>';
 function itemCard(it,i){
- var badge=it.owned?'<span class="badge own">Owned</span>':'';
+ var badge=it.owned?'<span class="badge own">Owned</span>':(it.locked&&it.locked.length?'<span class="badge">Needs '+esc(needs(it))+'</span>':'');
  return '<button class="card item" data-i="'+i+'">'+badge+itemArt(it)+'<span class="n">'+esc(it.name)+'</span>'+
   '<span class="pts">'+(it.owned?'&nbsp;':it.price+' points')+'</span></button>';
 }
@@ -984,6 +986,7 @@ function itemDetail(i){
  view=function(){itemDetail(i);}; view.gi=1; back=function(){section('items',true);}; chrome();
  var act=it.owned?'<p class="msg">You already have this item.</p>':
   (!items.linked?'<p class="msg">Link this console to your OpenPak account to use points.</p>':
+  (it.locked&&it.locked.length)?'<p class="msg">The game needs you to unlock '+esc(needs(it))+' first. Get that character\'s chest, then come back.</p>':
   '<button class="act" id="unlock">Unlock for '+it.price+' points</button>');
  app.innerHTML='<div class="detail"><div class="art">'+itemArt(it,1)+'</div><div><h1>'+esc(it.name)+'</h1><p class="pub">'+esc(gname(it.game))+'</p>'+
   '<div class="facts"><span>'+esc(it.slot||'item')+'</span><span>'+it.price+' points</span><span>You have '+items.balance+' points</span></div><div class="acts">'+act+'</div></div></div>';
@@ -996,7 +999,7 @@ function unlock(i){
   if(r.status===200){report({event:'game_item_unlocked',game:it.game,game_ref:it.game_ref});
    return loadItems(true).then(function(){itemDetail(i);app.insertAdjacentHTML('afterbegin','<p class="msg ok">Unlocked. It will show up in the game.</p>');});}
   var c=r.body&&r.body.code;
-  var m=r.status===402?'You need '+(it.price-(r.body.balance||0))+' more points for this item.':c==='owned'?'You already have this item.':c==='price_mismatch'?'The points cost changed. Open the list again.':r.status===404?'Link this console to your OpenPak account to use points.':'This item could not be unlocked right now.';
+  var m=r.status===402?'You need '+(it.price-(r.body.balance||0))+' more points for this item.':c==='owned'?'You already have this item.':c==='requires'?'The game needs you to unlock a character first.':c==='price_mismatch'?'The points cost changed. Open the list again.':r.status===404?'Link this console to your OpenPak account to use points.':'This item could not be unlocked right now.';
   loadItems(true).then(function(){itemDetail(i);show(m);});
  }).catch(function(){itemDetail(i);show('The points ledger could not be reached.');});
 }
